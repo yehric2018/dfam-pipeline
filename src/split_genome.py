@@ -4,10 +4,10 @@ bins based on GC-background.
 
 This Python3 script reads in a fa file containing a genome and
 creates various bin files for each percentage of GC background.
-60 kilobase batches will be read and placed into these bin files
-based on their GC background. There will be a 2 kilobase overlap
-between batches to capture sequences that might extend past the
-60 kilobase regions.
+60 kilobase (default) batches will be read and placed into these
+bin files based on their GC background. There will be a 2 kilobase
+(default) overlap between batches to capture sequences that might
+extend past the batch boundaries.
 
 AUTHOR(S):
     Eric Yeh
@@ -122,6 +122,19 @@ def splitGenome(fa_file, batch_length=BATCH_LENGTH,
     splitGenome(fa_file) - Reads given genome FA file, splits it into
     batches, and sorts the batches into bins based on the batch's GC
     background.
+
+    For each present GC background in the given batches, an fa file
+    will be produced for that bin titled "bin[GC content].fa", placed
+    in a folder called "bins". Each of these bins will contain the
+    batches from the input genome that match that corresponding GC
+    background.
+
+    Args:
+        fa_file: the name of the fa file containing the genome to be
+            split into bins.
+        batch_length: the maximum number of bases per batch.
+        batch_overlap: number of bases in overlapping regions.
+        row_length: number of bases per line in output bin files.
     """
     genome = open(fa_file, "r")
     seq_name = genome.readline()[1:-1]
