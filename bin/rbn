@@ -1,0 +1,265 @@
+#!/usr/local/bin/perl 
+##---------------------------------------------------------------------------##
+##  File:
+##      @(#) rbn
+##  Author:
+##      Robert M. Hubley   rhubley@systemsbiology.org
+##  Description:
+##      A simpler interface to rmblastn
+##
+#******************************************************************************
+#*  This software is provided ``AS IS'' and any express or implied            *
+#*  warranties, including, but not limited to, the implied warranties of      *
+#*  merchantability and fitness for a particular purpose, are disclaimed.     *
+#*  In no event shall the authors or the Institute for Systems Biology        *
+#*  liable for any direct, indirect, incidental, special, exemplary, or       *
+#*  consequential damages (including, but not limited to, procurement of      *
+#*  substitute goods or services; loss of use, data, or profits; or           *
+#*  business interruption) however caused and on any theory of liability,     *
+#*  whether in contract, strict liability, or tort (including negligence      *
+#*  or otherwise) arising in any way out of the use of this software, even    *
+#*  if advised of the possibility of such damage.                             *
+#*                                                                            *
+#******************************************************************************
+#
+# ChangeLog
+#
+#     $Log$ 
+#
+###############################################################################
+#
+# To Do:
+#
+=head1 NAME
+
+rbn - A simpler interface to rmblastn
+
+=head1 SYNOPSIS
+
+  cm [-version]
+
+=head1 DESCRIPTION
+
+The options are:
+
+=over 4
+
+=item -version
+
+Displays the version of the program
+
+=back
+
+=head1 SEE ALSO
+
+=head1 COPYRIGHT
+
+Copyright 2019 Robert Hubley, Institute for Systems Biology
+
+=head1 AUTHOR
+
+Robert Hubley <rhubley@systemsbiology.org>
+
+=cut
+
+#
+# Module Dependence
+#
+use strict;
+use FindBin;
+use lib $FindBin::RealBin;
+use Getopt::Long;
+use POSIX qw(:sys_wait_h ceil floor);
+use File::Copy;
+use File::Spec;
+use File::Path;
+use File::Basename;
+use Cwd qw(abs_path getcwd cwd);
+use Data::Dumper;
+use Time::HiRes qw( gettimeofday tv_interval);
+
+# RepeatMasker Libraries
+use lib "/home/rhubley/projects/RepeatMasker";
+use SearchResult;
+use SearchResultCollection;
+use WUBlastSearchEngine;
+use NCBIBlastSearchEngine;
+use SeqDBI;
+use SimpleBatcher;
+use FastaDB;
+
+
+#
+# Version
+#
+#  This is a neat trick.  CVS allows you to tag
+#  files in a repository ( i.e. cvs tag "2003/12/03" ).
+#  If you check out that release into a new
+#  directory with "cvs co -r "2003/12/03" it will
+#  place this string into the $Name:  $ space below
+#  automatically.  This will help us keep track
+#  of which release we are using.  If we simply
+#  check out the code as "cvs co Program" the
+#  $Name:  $ macro will be blank so we should default
+#  to what the ID tag for this file contains.
+#
+my $CVSNameTag = '$Name$';
+my $CVSIdTag = '$Id$';
+my $Version = $CVSNameTag;
+$Version = $CVSIdTag if ( $Version eq "" );
+
+##----------------------------------------------------------------------##
+##      S I T E   S P E C I F I C   C O N F I G U R A T I O N
+##
+##  If you must include site specific variables in the program
+##  itself put them here.
+##
+##  ie. my $blastPrgrmDir = "/user/local/blast/bin";
+##      my $indelPenalty = 30;
+##
+##  END OF SITE SPECIFIC CONFIGURATION -- DO NOT EDIT BELOW THIS LINE
+##----------------------------------------------------------------------##
+
+#
+# Magic numbers/constants here
+#  ie. my $PI = 3.14159;
+#   
+my $DEBUG = 0;
+my $configFileName = "$0.config";
+my @configFilePath = ( ".", $ENV{'HOME'} );
+
+#
+# Option processing
+#  e.g.
+#   -t: Single letter binary option
+#   -t=s: String parameters
+#   -t=i: Number paramters
+#
+my $version;
+my $alignments;
+my $matrix = "$FindBin::RealBin/Matrices/ncbi/nt/ctools.matrix";
+my $gapInit = -30;
+my $gapExt;
+my $insGapExt = -6;
+my $delGapExt = -6,
+my $minmatch = 7;
+my $minscore = 180;
+my $masklevel;
+my $wordRaw;
+my $bandwidth;
+my $raw;
+my $threads = 6;
+
+my %getopt_args = (
+    'version' => \$version, # print out the version and exit
+    'alignments|a' => \$alignments,
+    'matrix|m=s' => \$matrix,
+    'gap_init|gi=i' => \$gapInit,
+    'gap_ext|ge=i' => \$gapExt,
+    'ins_gap_ext|ige=i' => \$insGapExt,
+    'del_gap_ext|dge=i' => \$delGapExt,
+    'minmatch|mm=i' => \$minmatch,
+    'minscore|ms=i' => \$minscore,
+    'masklevel|ml=i' => \$masklevel,
+    'word_raw|wr' => \$wordRaw,
+    'bandwidth|bw=i' => \$bandwidth,
+    'threads=i' => \$threads,
+    'raw|r' => \$raw
+);
+
+Getopt::Long::config("noignorecase", "bundling_override");
+unless (GetOptions( %getopt_args)) {
+    usage();
+}
+
+sub usage {
+  print "$0 - $Version\n\n";
+  exec "pod2text $0";
+  exit;
+}
+
+if ( $version ) {
+  print "$Version\n";
+  exit;
+}
+
+#
+# ARGV Processing
+#
+if ( !@ARGV  ) {
+  usage();
+}
+
+# Assume it's in the path
+my $pathToRMB = `whereis rmblastn`;
+$pathToRMB =~ s/(\s*\S+\:)//g;
+$pathToRMB =~ s/[\n\r\s]+//g;
+
+my $searchEngineN = NCBIBlastSearchEngine->new(
+                       pathToEngine => $pathToRMB );
+
+
+
+$searchEngineN->setGenerateAlignments( 1 ) if ( $alignments );
+$searchEngineN->setMatrix( $matrix ) if ( $matrix );
+$searchEngineN->setBandwidth( -(abs($bandwidth)) ) if ( $bandwidth );
+$searchEngineN->setMaskLevel( $masklevel ) if ( $masklevel );
+$searchEngineN->setMinScore( $minscore ) if ( $minscore );
+$searchEngineN->setGapInit( $gapInit ) if ( $gapInit );
+if ( $gapExt )
+{
+  $searchEngineN->setInsGapExt( $gapExt );
+  $searchEngineN->setDelGapExt( $gapExt );
+}
+$searchEngineN->setInsGapExt( $insGapExt ) if ( $insGapExt );
+$searchEngineN->setDelGapExt( $delGapExt ) if ( $delGapExt );
+$searchEngineN->setMinMatch( $minmatch ) if ( $minmatch );
+$searchEngineN->setScoreMode( SearchEngineI::complexityAdjustedScoreMode );
+$searchEngineN->setCores( $threads ); 
+#$options .= " -word_raw" if ( $wordRaw );
+#$options .= " -raw" if ( $raw );
+
+if ( ! -s $ARGV[0] )
+{
+  die "$ARGV[0] missing or empty!\n";
+}
+
+my $query = $ARGV[0];
+my $subj = $ARGV[1];
+
+if ( ! -s "$subj.nhr" ) {
+system(   "makeblastdb -out $subj "
+        . "-parse_seqids -dbtype nucl -in $subj > "
+        . "makeblastdb.log 2>&1" );
+system("cat makeblastdb.log");
+unlink("makeblastdb.log");
+}
+
+$searchEngineN->setQuery( $query );
+$searchEngineN->setSubject( $subj );
+print STDERR "Search Parameters: " . $searchEngineN->getParameters() . "\n";
+my ( $status, $resultCollection ) = $searchEngineN->search();
+
+if ( $status )
+{
+  print STDERR "\nERROR from search engine (", $? >> 8, ") \n";
+} else
+{
+  for ( my $k = 0 ; $k < $resultCollection->size() ; $k++ ) {
+    my $resultRef = $resultCollection->get( $k );
+    #my $m = $resultRef->getQueryEnd() - $resultRef->getQueryStart() + 1;
+    #my $n = $resultRef->getSubjEnd() - $resultRef->getSubjStart() + 1;
+    #For ctools matrix and -30/-6 gap params
+    #my $lambda = 0.118758;
+    #my $k = 0.218063;
+    #my $eValue = $k * $m * $n * exp(-$lambda*$resultRef->getScore());
+    #print "Evalue = $eValue\n";
+    if ( $alignments ) {
+      print "" . $resultRef->toStringFormatted( SearchResult::AlignWithQuerySeq );
+    }else {
+      print "" . $resultRef->toStringFormatted( SearchResult::OutFileFormat );
+    }
+  }
+}
+
+1;

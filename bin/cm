@@ -1,0 +1,220 @@
+#!/usr/local/bin/perl -w
+##---------------------------------------------------------------------------##
+##  File:
+##      @(#) cm
+##  Author:
+##      Robert M. Hubley   rhubley@systemsbiology.org
+##  Description:
+##      A simpler interface to cross_match
+##
+#******************************************************************************
+#*  This software is provided ``AS IS'' and any express or implied            *
+#*  warranties, including, but not limited to, the implied warranties of      *
+#*  merchantability and fitness for a particular purpose, are disclaimed.     *
+#*  In no event shall the authors or the Institute for Systems Biology        *
+#*  liable for any direct, indirect, incidental, special, exemplary, or       *
+#*  consequential damages (including, but not limited to, procurement of      *
+#*  substitute goods or services; loss of use, data, or profits; or           *
+#*  business interruption) however caused and on any theory of liability,     *
+#*  whether in contract, strict liability, or tort (including negligence      *
+#*  or otherwise) arising in any way out of the use of this software, even    *
+#*  if advised of the possibility of such damage.                             *
+#*                                                                            *
+#******************************************************************************
+#
+# ChangeLog
+#
+#     $Log$ 
+#
+###############################################################################
+#
+# To Do:
+#
+=head1 NAME
+
+cm - A simpler interface to cross_match
+
+=head1 SYNOPSIS
+
+  cm [-version]
+
+=head1 DESCRIPTION
+
+The options are:
+
+=over 4
+
+=item -version
+
+Displays the version of the program
+
+=back
+
+=head1 SEE ALSO
+
+=head1 COPYRIGHT
+
+Copyright 2013 Robert Hubley, Institute for Systems Biology
+
+=head1 AUTHOR
+
+Robert Hubley <rhubley@systemsbiology.org>
+
+=cut
+
+#
+# Module Dependence
+#
+use strict;
+use Getopt::Long;
+use Data::Dumper;
+use FindBin;
+
+#
+# Version
+#
+#  This is a neat trick.  CVS allows you to tag
+#  files in a repository ( i.e. cvs tag "2003/12/03" ).
+#  If you check out that release into a new
+#  directory with "cvs co -r "2003/12/03" it will
+#  place this string into the $Name:  $ space below
+#  automatically.  This will help us keep track
+#  of which release we are using.  If we simply
+#  check out the code as "cvs co Program" the
+#  $Name:  $ macro will be blank so we should default
+#  to what the ID tag for this file contains.
+#
+my $CVSNameTag = '$Name$';
+my $CVSIdTag = '$Id$';
+my $Version = $CVSNameTag;
+$Version = $CVSIdTag if ( $Version eq "" );
+
+##----------------------------------------------------------------------##
+##      S I T E   S P E C I F I C   C O N F I G U R A T I O N
+##
+##  If you must include site specific variables in the program
+##  itself put them here.
+##
+##  ie. my $blastPrgrmDir = "/user/local/blast/bin";
+##      my $indelPenalty = 30;
+##
+##  END OF SITE SPECIFIC CONFIGURATION -- DO NOT EDIT BELOW THIS LINE
+##----------------------------------------------------------------------##
+
+#
+# Magic numbers/constants here
+#  ie. my $PI = 3.14159;
+#   
+my $DEBUG = 0;
+my $configFileName = "$0.config";
+my @configFilePath = ( ".", $ENV{'HOME'} );
+
+#
+# Option processing
+#  e.g.
+#   -t: Single letter binary option
+#   -t=s: String parameters
+#   -t=i: Number paramters
+#
+my $version;
+my $alignments;
+my $matrix = "$FindBin::RealBin/Matrices/ctools.matrix";
+my $gapInit = -30;
+my $gapExt;
+my $insGapExt = -6;
+my $delGapExt = -5,
+my $minmatch = 7;
+my $minscore = 180;
+my $masklevel;
+my $wordRaw;
+my $bandwidth;
+my $raw;
+my $quiet = 0;
+
+my %getopt_args = (
+    'version' => \$version, # print out the version and exit
+    'alignments|a' => \$alignments,
+    'matrix|m=s' => \$matrix,
+    'gap_init|gi=i' => \$gapInit,
+    'gap_ext|ge=i' => \$gapExt,
+    'ins_gap_ext|ige=i' => \$insGapExt,
+    'del_gap_ext|dge=i' => \$delGapExt,
+    'minmatch|mm=i' => \$minmatch,
+    'minscore|ms=i' => \$minscore,
+    'masklevel|ml=i' => \$masklevel,
+    'word_raw|wr' => \$wordRaw,
+    'bandwidth|bw=i' => \$bandwidth,
+    'quiet|q' => \$quiet,
+    'raw|r' => \$raw
+);
+
+Getopt::Long::config("noignorecase", "bundling_override");
+unless (GetOptions( %getopt_args)) {
+    usage();
+}
+
+sub usage {
+  print "$0 - $Version\n\n";
+  exec "pod2text $0";
+  exit;
+}
+
+if ( $version ) {
+  print "$Version\n";
+  exit;
+}
+
+#
+# ARGV Processing
+#
+if ( !@ARGV  ) {
+  usage();
+}
+
+my $options;
+$options .= " -alignments" if ( $alignments );
+$options .= " -matrix $matrix";
+$options .= " -gap_init $gapInit";
+$options .= " -gap_ext $gapExt" if ( $gapExt );
+$options .= " -ins_gap_ext $insGapExt" if ( $insGapExt );
+$options .= " -del_gap_ext $delGapExt" if ( $delGapExt );
+$options .= " -minmatch $minmatch" if ( $minmatch );
+$options .= " -minscore $minscore" if ( $minscore );
+$options .= " -masklevel $masklevel" if ( $masklevel );
+$options .= " -word_raw" if ( $wordRaw );
+$options .= " -bandwidth $bandwidth" if ( $bandwidth );
+$options .= " -raw" if ( $raw );
+
+
+if ( ! -s $ARGV[0] )
+{
+  die "$ARGV[0] missing or empty!\n";
+}
+$options .= " " . $ARGV[0];
+
+if ( defined $ARGV[1] && -s $ARGV[1] )
+{
+  $options .= " " . $ARGV[1];
+}
+
+
+open IN, "cross_match $options 2>/dev/null |" or die "Could not run cross_match";
+print "Command: cross_match $options\n" unless ( $quiet );
+my $inAlign = 0;
+while ( <IN> )
+{
+  if ( /^\s*\d+\s+\d+\.\d+/ )
+  {
+    print;
+    $inAlign = 1 if ( $alignments );
+    next;
+  }
+  if ( $inAlign )
+  {
+    print;
+    $inAlign = 0 if ( /Transitions \/ transversions =/ );
+  } 
+}
+close IN;
+
+1;
