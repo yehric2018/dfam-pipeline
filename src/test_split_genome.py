@@ -53,6 +53,7 @@ def test_splitGenome(fa_file, batch_length = 60000, batch_overlap = 2000):
                             + " GC content = " + gcBackground(gcat[0], gcat[1]))
 
     # Make sure batch sizes are followed, and overlapping regions match
+    # Also construct a new dict for seq_name to sequence, appending seqs together
     for item in seqDict.items():
         seqName = item[0]
         sequence = item[1]
@@ -64,7 +65,6 @@ def test_splitGenome(fa_file, batch_length = 60000, batch_overlap = 2000):
                 failTest(seqName + "has incorrect batch overlap after i = " + i)
 
     # Compare to sequences of original fa file
-
 
     print("Tests finished for " + fa_file)
     clearDirectory("bins")
