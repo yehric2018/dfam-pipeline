@@ -11,6 +11,7 @@ import os
 import math
 
 from split_genome import splitGenome, gcBackground, countGCAT
+from bin_genome import binGenome
 
 def failTest(err):
     print("FAILURE: " + err)
@@ -26,7 +27,7 @@ def clearDirectory(path):
 
 def test_splitGenome(fa_file, batch_length = 60000, batch_overlap = 2000):
     clearDirectory("bins")
-    splitGenome(fa_file)
+    binGenome(fa_file, "testbins/")
     filelist = [ os.path.join("bins", f) for f in os.listdir("bins") ]
     seqDict = {}
 

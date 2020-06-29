@@ -18,18 +18,21 @@ AUTHOR(S):
 #
 import argparse
 import io
+import os
 
 BATCH_LENGTH = 60000
 BATCH_OVERLAP = 2000
 MIN_BATCH_LENGTH = 40000
-GC_BINS = []
+ROW_LENGTH = 50
+GC_BINS = [35, 37, 39, 41, 43, 45, 47, 49, 51, 53]
 
 class GenomeBatch:
     """
     GenomeBatch stores a batch of bases from a genome, which can be
     written to a corresponding bin based on its GC background.
     """
-    def __init__(self, seq_name, start, seq=""):
+    def __init__(self, seq_name, start, output_dir, seq="",
+            batch_length=BATCH_LENGTH, batch_overlap=BATCH_OVERLAP):
         """
         Initializes this batch with the given name and start index,
         as well as the given sequence if provided.
@@ -44,9 +47,10 @@ class GenomeBatch:
         """
         self.seq_name = seq_name
         self.start = start
+        self.output_dir = output_dir
         self.seq = seq
         self.gc = self.gcat = 0
-        self.__countGCAT(seq)
+        self.__countGCAT__(seq)
 
     def batchName(self):
         """
@@ -62,7 +66,8 @@ class GenomeBatch:
             ex. if start = 0 and end = 60000, the returned batch-name
             will be "chr1:1-60000"
         """
-        return seq_name + ":" + (start + 1) + "-" + (start + len(seq))
+        return (self.seq_name + ":" + str(self.start + 1) + "-"
+                    + str((self.start + len(self.seq))))
 
     def gcBackground(self):
         """
@@ -79,7 +84,9 @@ class GenomeBatch:
         Returns - The GC bin that this batch will be assigned to when
         written.
         """
-        gcb = 100.0 * gc / gcat
+        if self.gcat == 0:
+            return -1
+        gcb = 100.0 * self.gc / self.gcat
         minDist = 100.0
         binNum = -1
 
@@ -111,14 +118,14 @@ class GenomeBatch:
             "" otherwise
         """
         append = seq[:BATCH_LENGTH - len(self.seq)]
-        self.__countGCAT(append)
+        self.__countGCAT__(append)
         self.seq += append
         if len(self.seq) == BATCH_LENGTH:
             return (self.seq[-BATCH_OVERLAP:] +
-                    seq[BATCH_LENGTH - len(self.seq):])
+                    seq[len(append):])
         return ""
 
-    def writeToBin(self):
+    def writeToBin(self, row_length=ROW_LENGTH):
         """
         writeToBin(self) - Write this batch to its corresponding bin.
         
@@ -131,8 +138,23 @@ class GenomeBatch:
         This method should not be called until the next batch is
         finished being read in case the next batch has to be combined
         with this batch.
+
+        Args:
+            row_length - number of bases per row in output file.
         """
-        return False
+        bin_num = self.gcBackground()
+        if bin_num == -1:
+            return
+        bin_file = open(os.path.join(self.output_dir,
+                    "bin" + str(bin_num) + ".fa"), "a")
+        bin_file.write(">" + self.batchName() + "\n")
+        if row_length > 0:
+            for i in range(int((len(self.seq) - 1) / row_length) + 1):
+                bin_file.write(self.seq[row_length * i:row_length * (i + 1)]
+                                + "\n")
+        else:
+            bin_file.write(batch + "\n")
+        bin_file.close()
 
     def combineBatch(self, other):
         """
@@ -176,39 +198,10 @@ class GenomeBatch:
                     self.gc += 1
                 self.gcat += 1
 
-def writeBatchToBin(batch_name, batch, bin_num, row_length=-1):
-    """
-    writeBatchToBin(batch_name, batch, bin_num)
-
-    Appends the given batch to a fa file of the given bin_num if
-    bin_num >= 0.
-    
-    Args:
-        batch_name: a string describing this batch. It should include
-            the title of the original sequence and the start/end
-            indices of the batch. (ex. chr1: 1-60000)
-        batch: the string of bases making of this batch.
-        bin_num: an integer representing the percentage of GC content
-            within the batch. If bin_num < 0, don't write this batch.
-        row_length: indicates the number of bases per output line. If
-            row_length <= 0, the whole batch is printed to one row.
-    """
-    if bin_num < 0:
-        return
-    bin_file = open("bins/bin" + str(bin_num) + ".fa", "a")
-    bin_file.write(">" + batch_name + "\n")
-    if row_length > 0:
-        for i in range(int((len(batch) - 1) / row_length) + 1):
-            bin_file.write(batch[row_length * i:row_length * (i + 1)]
-                            + "\n")
-    else:
-        bin_file.write(batch + "\n")
-    bin_file.close()
-
-def splitGenome(fa_file, batch_length=BATCH_LENGTH,
+def binGenome(fa_file, output_dir, batch_length=BATCH_LENGTH,
                 batch_overlap=BATCH_OVERLAP, row_length=-1):
     """
-    splitGenome(fa_file) - Reads given genome FA file, splits it into
+    binGenome(fa_file) - Reads given genome FA file, splits it into
     batches, and sorts the batches into bins based on the batch's GC
     background.
 
@@ -221,53 +214,63 @@ def splitGenome(fa_file, batch_length=BATCH_LENGTH,
     Args:
         fa_file: the name of the fa file containing the genome to be
             split into bins.
+        output_dir: name of directory to place bin files in.
         batch_length: the maximum number of bases per batch.
         batch_overlap: number of bases in overlapping regions.
         row_length: number of bases per line in output bin files.
     """
     genome = open(fa_file, "r")
     seq_name = genome.readline()[1:-1]
-    batch = ""
-    line = ""
-    start = end = gc = at = 0
-    while True:
-        if line == "":
-            line = genome.readline()[:-1]
-        if line == "":
-            writeBatchToBin(batchName(seq_name, start, end),
-                            batch, gcBackground(gc, at), row_length)
-            break
+    prev_batch = None
+    batch = GenomeBatch(seq_name, 0, output_dir)
+    line = genome.readline()[:-1]
+    while line != "":
         if line[0] == ">":
-            writeBatchToBin(batchName(seq_name, start, end),
-                            batch, gcBackground(gc, at), row_length)
-            seq_name = line[1:] # truncate '#' and '\n'
-            start = 0
-            gc = at = end = 0
-            batch = ""
-            line = ""
+            # combine batch with prev_batch if batch < 40K
+            seq_name = line[1:]
+            if prev_batch == None:
+                batch.writeToBin()
+                batch = GenomeBatch(seq_name, 0, output_dir)
+            elif len(batch.seq) < 40000:
+                prev_batch.combineBatch(batch)
+                prev_batch.writeToBin()
+                prev_batch = None
+                batch = GenomeBatch(seq_name, 0, output_dir)
+            # else just print out both
+            else:
+                prev_batch.writeToBin()
+                prev_batch = None
+                batch.writeToBin()
+                batch = GenomeBatch(seq_name, 0, output_dir)
+            # if "" then break, if ">" then continue
+            line = genome.readline()[:-1]
             continue
-        if len(batch) + len(line) >= batch_length:
-            read_bases = batch_length - len(batch)
-            end += read_bases
-            batch += line[:read_bases]
-            extra = line[read_bases:]
-            gcat = countGCAT(line)
-            gc += gcat[0]
-            at += gcat[1]
-            writeBatchToBin(batchName(seq_name, start, end),
-                            batch, gcBackground(gc, at), row_length)
-            start = end - batch_overlap
-            end = start
-            line = batch[-batch_overlap:] + extra
-            batch = ""
-            gc = at = 0
+        # add line to batch
+        rem = batch.addToBatch(line)
+        # if return stuff from batch, then full
+        if rem != "":
+            # write prev batch
+            if prev_batch != None:
+                prev_batch.writeToBin()
+            # set prev_batch to current batch, set returned stuff to new batch
+            prev_batch = batch
+            batch = GenomeBatch(seq_name, prev_batch.start +
+                    len(prev_batch.seq) - len(rem), output_dir, rem)
+        line = genome.readline()[:-1]
+    if len(batch.seq) < 40000:
+        if prev_batch == None:
+            batch.writeToBin()
         else:
-            batch += line # truncate '\n'
-            end += len(line)
-            gcat = countGCAT(line)
-            gc += gcat[0]
-            at += gcat[1]
-            line = ""
+            prev_batch.combineBatch(batch)
+            prev_batch.writeToBin()
+            prev_batch = None
+        batch = GenomeBatch(seq_name, 0, output_dir)
+    else:
+        if prev_batch != None:
+            prev_batch.writeToBin()
+            prev_batch = None
+        batch.writeToBin()
+        batch = GenomeBatch(seq_name, 0, output_dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -277,4 +280,4 @@ if __name__ == '__main__':
             help="number of bases per row in output")
     args = parser.parse_args()
 
-    splitGenome(args.genome_fa_file, row_length=args.c)
+    binGenome(args.genome_fa_file, "bins/", row_length=args.c)
