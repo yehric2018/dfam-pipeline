@@ -68,11 +68,13 @@ def test_splitGenome(fa_file, batch_length = 60000, batch_overlap = 2000):
     # Compare to sequences of original fa file
 
     print("Tests finished for " + fa_file)
-    clearDirectory("bins")
+    clearDirectory("testbins")
 
 
 
 if __name__ == '__main__':
     test_splitGenome("../data/test_data/short-human.fa")
+    test_splitGenome("../data/test_data/short-human.fa", 8, 3)
     test_splitGenome("../data/test_data/split_human-1mb.fa")
     test_splitGenome("../data/test_data/human-1mb.fa")
+    test_splitGenome("../data/test_data/split_human-1mb.fa", 1234, 50)

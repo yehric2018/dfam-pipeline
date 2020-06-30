@@ -153,7 +153,7 @@ class GenomeBatch:
                 bin_file.write(self.seq[row_length * i:row_length * (i + 1)]
                                 + "\n")
         else:
-            bin_file.write(batch + "\n")
+            bin_file.write(self.seq + "\n")
         bin_file.close()
 
     def combineBatch(self, other):
@@ -223,54 +223,46 @@ def binGenome(fa_file, output_dir, batch_length=BATCH_LENGTH,
     seq_name = genome.readline()[1:-1]
     prev_batch = None
     batch = GenomeBatch(seq_name, 0, output_dir)
-    line = genome.readline()[:-1]
+    line = genome.readline()
     while line != "":
-        if line[0] == ">":
-            # combine batch with prev_batch if batch < 40K
+        line = line[:-1]
+        if line != "" and line[0] == ">":
             seq_name = line[1:]
             if prev_batch == None:
-                batch.writeToBin()
+                batch.writeToBin(row_length)
                 batch = GenomeBatch(seq_name, 0, output_dir)
             elif len(batch.seq) < 40000:
                 prev_batch.combineBatch(batch)
-                prev_batch.writeToBin()
+                prev_batch.writeToBin(row_length)
                 prev_batch = None
                 batch = GenomeBatch(seq_name, 0, output_dir)
-            # else just print out both
             else:
-                prev_batch.writeToBin()
+                prev_batch.writeToBin(row_length)
                 prev_batch = None
-                batch.writeToBin()
+                batch.writeToBin(row_length)
                 batch = GenomeBatch(seq_name, 0, output_dir)
-            # if "" then break, if ">" then continue
-            line = genome.readline()[:-1]
+            line = genome.readline()
             continue
-        # add line to batch
         rem = batch.addToBatch(line)
-        # if return stuff from batch, then full
         if rem != "":
-            # write prev batch
             if prev_batch != None:
-                prev_batch.writeToBin()
-            # set prev_batch to current batch, set returned stuff to new batch
+                prev_batch.writeToBin(row_length)
             prev_batch = batch
-            batch = GenomeBatch(seq_name, prev_batch.start +
-                    len(prev_batch.seq) - len(rem), output_dir, rem)
-        line = genome.readline()[:-1]
+            batch = GenomeBatch(seq_name, batch.start +
+                    batch_length - batch_overlap, output_dir, rem)
+        line = genome.readline()
     if len(batch.seq) < 40000:
         if prev_batch == None:
-            batch.writeToBin()
+            batch.writeToBin(row_length)
         else:
             prev_batch.combineBatch(batch)
-            prev_batch.writeToBin()
+            prev_batch.writeToBin(row_length)
             prev_batch = None
-        batch = GenomeBatch(seq_name, 0, output_dir)
     else:
         if prev_batch != None:
-            prev_batch.writeToBin()
+            prev_batch.writeToBin(row_length)
             prev_batch = None
-        batch.writeToBin()
-        batch = GenomeBatch(seq_name, 0, output_dir)
+        batch.writeToBin(row_length)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
