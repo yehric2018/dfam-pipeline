@@ -1,5 +1,6 @@
 """
-WARNING: Old/outdated code for splitting genome file.
+WARNING: Old/outdated code for splitting genome file. Now just used
+for testing.
 Use bin_genome.py instead
 
 split_genome.py: Reads in a genome fa file and splits sequences into
