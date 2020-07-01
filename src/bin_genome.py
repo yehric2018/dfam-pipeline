@@ -32,7 +32,7 @@ class GenomeBatch:
     written to a corresponding bin based on its GC background.
     """
     def __init__(self, seq_name, start, output_dir, seq="",
-            batch_length=BATCH_LENGTH, batch_overlap=BATCH_OVERLAP):
+            bl=BATCH_LENGTH, bo=BATCH_OVERLAP):
         """
         Initializes this batch with the given name and start index,
         as well as the given sequence if provided.
@@ -45,10 +45,14 @@ class GenomeBatch:
             seq: initialize this batch with some bases, usually
                 overlap from the previous sequence.
         """
-        self.seq_name = seq_name
+        self.seq_name = seq_name.split()[0]
         self.start = start
         self.output_dir = output_dir
         self.seq = seq
+
+        self.batch_length = bl
+        self.batch_overlap = bo
+
         self.gc = self.gcat = 0
         self.__countGCAT__(seq)
 
@@ -117,11 +121,11 @@ class GenomeBatch:
                 this batch reached BATCH_LENGTH bases.
             "" otherwise
         """
-        append = seq[:BATCH_LENGTH - len(self.seq)]
+        append = seq[:self.batch_length - len(self.seq)]
         self.__countGCAT__(append)
         self.seq += append
-        if len(self.seq) == BATCH_LENGTH:
-            return (self.seq[-BATCH_OVERLAP:] +
+        if len(self.seq) == self.batch_length:
+            return (self.seq[-self.batch_overlap:] +
                     seq[len(append):])
         return ""
 
@@ -170,7 +174,7 @@ class GenomeBatch:
             other - another GenomeBatch that will be appended to
                 self.seq
         """
-        append = other.seq[BATCH_OVERLAP:]
+        append = other.seq[self.batch_overlap:]
         self.__countGCAT__(append)
         self.seq += append
 
@@ -219,10 +223,15 @@ def binGenome(fa_file, output_dir, batch_length=BATCH_LENGTH,
         batch_overlap: number of bases in overlapping regions.
         row_length: number of bases per line in output bin files.
     """
+    print("Binning " + fa_file + " into " + output_dir + " with " +
+        "batch_length=" + str(batch_length) + " and batch_overlap="
+        + str(batch_overlap))
+
     genome = open(fa_file, "r")
     seq_name = genome.readline()[1:-1]
     prev_batch = None
-    batch = GenomeBatch(seq_name, 0, output_dir)
+    batch = GenomeBatch(seq_name, 0, output_dir, bl=batch_length,
+                        bo=batch_overlap)
     line = genome.readline()
     while line != "":
         line = line[:-1]
@@ -230,17 +239,20 @@ def binGenome(fa_file, output_dir, batch_length=BATCH_LENGTH,
             seq_name = line[1:]
             if prev_batch == None:
                 batch.writeToBin(row_length)
-                batch = GenomeBatch(seq_name, 0, output_dir)
+                batch = GenomeBatch(seq_name, 0, output_dir,
+                        bl=batch_length, bo=batch_overlap)
             elif len(batch.seq) < 40000:
                 prev_batch.combineBatch(batch)
                 prev_batch.writeToBin(row_length)
                 prev_batch = None
-                batch = GenomeBatch(seq_name, 0, output_dir)
+                batch = GenomeBatch(seq_name, 0, output_dir,
+                        bl=batch_length, bo=batch_overlap)
             else:
                 prev_batch.writeToBin(row_length)
                 prev_batch = None
                 batch.writeToBin(row_length)
-                batch = GenomeBatch(seq_name, 0, output_dir)
+                batch = GenomeBatch(seq_name, 0, output_dir,
+                        bl=batch_length, bo=batch_overlap)
             line = genome.readline()
             continue
         rem = batch.addToBatch(line)
@@ -249,7 +261,8 @@ def binGenome(fa_file, output_dir, batch_length=BATCH_LENGTH,
                 prev_batch.writeToBin(row_length)
             prev_batch = batch
             batch = GenomeBatch(seq_name, batch.start +
-                    batch_length - batch_overlap, output_dir, rem)
+                    batch_length - batch_overlap, output_dir, rem,
+                    bl=batch_length, bo=batch_overlap)
         line = genome.readline()
     if len(batch.seq) < 40000:
         if prev_batch == None:
@@ -268,8 +281,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("genome_fa_file",
             help="fa file containing genome to parse")
+    parser.add_argument("output_dir",
+            help="dir where bin files are placed")
     parser.add_argument("-c", type=int, default=-1,
             help="number of bases per row in output")
     args = parser.parse_args()
 
-    binGenome(args.genome_fa_file, "bins/", row_length=args.c)
+    binGenome(args.genome_fa_file, args.output_dir, row_length=args.c)

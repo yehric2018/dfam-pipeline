@@ -1,0 +1,11 @@
+Consensus Sequence Threshold Project
+With Eric Yeh
+
+Fri Jun 26 11:23:44 PDT 2020
+============================
+
+ - Created ex_hg38_cons.fa fasta file containing four families from HG38 for
+   testing with Eric's pipeline.
+ - Created matrix-gap-params file with mappings between matrices and gap
+   parameters.
+  

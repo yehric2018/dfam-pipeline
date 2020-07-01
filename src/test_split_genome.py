@@ -26,22 +26,22 @@ def clearDirectory(path):
         os.remove(os.path.join(path, f))
 
 def test_splitGenome(fa_file, batch_length = 60000, batch_overlap = 2000):
-    clearDirectory("bins")
-    binGenome(fa_file, "testbins/")
-    filelist = [ os.path.join("bins", f) for f in os.listdir("bins") ]
+    clearDirectory("testbins")
+    binGenome(fa_file, "testbins/", batch_length, batch_overlap)
+    filelist = [ os.path.join("testbins", f) for f in os.listdir("testbins") ]
     seqDict = {}
 
     # Check that batches are correctly binned, while constructing dict
     # to use for later tests.
     for fname in filelist:
-        gcContent = int(fname[8:-3])
+        gcContent = int(fname[12:-3])
         with open(fname, "r") as f:
             lines = f.readlines()
             if len(lines) % 2 != 0:
                 failTest(fname + " has incorrect format")
             for i in range(int(len(lines) / 2)):
                 batchName = lines[2 * i][1:-1]
-                batch = batchName.split(": ")
+                batch = batchName.split(":")
                 seqName = batch[0]
                 seqStart = int(batch[1].split("-")[0])
                 seq = lines[2 * i + 1][:-1]
@@ -51,7 +51,7 @@ def test_splitGenome(fa_file, batch_length = 60000, batch_overlap = 2000):
                 gcat = countGCAT(seq)
                 if gcContent != gcBackground(gcat[0], gcat[1]):
                     failTest(batchName + "in wrong bin, found actual"
-                            + " GC content = " + gcBackground(gcat[0], gcat[1]))
+                            + " GC content = " + str(gcBackground(gcat[0], gcat[1])))
 
     # Make sure batch sizes are followed, and overlapping regions match
     # Also construct a new dict for seq_name to sequence, appending seqs together
@@ -61,9 +61,10 @@ def test_splitGenome(fa_file, batch_length = 60000, batch_overlap = 2000):
         frags = sorted(sequence.keys())
         for i in range(len(frags) - 1):
             if len(sequence[frags[i]]) != batch_length:
-                failTest(seqName + " has incorrect batch length at i = " + i)
+                failTest(seqName + " has incorrect batch length at i = " + str(i) +
+                        ", actual length is " + str(len(sequence[frags[i]])))
             if sequence[frags[i]][-batch_overlap:] != sequence[frags[i + 1]][:batch_overlap]:
-                failTest(seqName + "has incorrect batch overlap after i = " + i)
+                failTest(seqName + " has incorrect batch overlap after i = " + str(i))
 
     # Compare to sequences of original fa file
 

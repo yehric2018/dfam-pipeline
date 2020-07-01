@@ -22,6 +22,7 @@ import io
 BATCH_LENGTH = 60000
 BATCH_OVERLAP = 2000
 MIN_BATCH_LENGTH = 40000
+GC_BINS = [35, 37, 39, 41, 43, 45, 47, 49, 51, 53]
 
 def countGCAT(seq):
     """
@@ -83,9 +84,20 @@ def gcBackground(gc, at):
     Returns: an int representing the GC background from the given
     parameters, or -1 if gc + at = 0.
     """
-    if gc + at == 0:
+    gcat = gc + at
+    if gcat == 0:
         return -1
-    return int(round(100.0 * gc / (gc + at)))
+    gcb = 100.0 * gc / gcat
+    minDist = 100.0
+    binNum = -1
+
+    # Can probably use a binary search algorithm later
+    #    O(1)/O(N) => O(1)/O(logN)
+    for b in GC_BINS:
+        if abs(b - gcb) < minDist:
+            minDist = abs(b - gcb)
+            binNum = b
+    return binNum
 
 def writeBatchToBin(batch_name, batch, bin_num, row_length=-1):
     """

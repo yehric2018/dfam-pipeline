@@ -1,54 +1,10 @@
+Binning ../data/test_data/short-human.fa into testbins/ with batch_length=60000 and batch_overlap=2000
 Tests finished for ../data/test_data/short-human.fa
+Binning ../data/test_data/short-human.fa into testbins/ with batch_length=8 and batch_overlap=3
 Tests finished for ../data/test_data/short-human.fa
-0 2000
-58000 2000
-116000 2000
-174000 2000
-232000 2000
-290000 2000
-0 2000
-58000 2000
-116000 2000
-174000 2000
-232000 2000
-290000 2000
-348000 2000
-406000 2000
-464000 2000
-522000 2000
+Binning ../data/test_data/split_human-1mb.fa into testbins/ with batch_length=60000 and batch_overlap=2000
 Tests finished for ../data/test_data/split_human-1mb.fa
-0 2000
-58000 2000
-116000 2000
-174000 2000
-232000 2000
-290000 2000
-348000 2000
-406000 2000
-464000 2000
-522000 2000
-580000 2000
-638000 2000
-696000 2000
-754000 2000
-812000 2000
-870000 2000
-928000 2000
+Binning ../data/test_data/human-1mb.fa into testbins/ with batch_length=60000 and batch_overlap=2000
 Tests finished for ../data/test_data/human-1mb.fa
-0 2000
-58000 2000
-116000 2000
-174000 2000
-232000 2000
-290000 2000
-0 2000
-58000 2000
-116000 2000
-174000 2000
-232000 2000
-290000 2000
-348000 2000
-406000 2000
-464000 2000
-522000 2000
+Binning ../data/test_data/split_human-1mb.fa into testbins/ with batch_length=1234 and batch_overlap=50
 Tests finished for ../data/test_data/split_human-1mb.fa
