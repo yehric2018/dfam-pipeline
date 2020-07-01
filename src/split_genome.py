@@ -1,4 +1,7 @@
 """
+WARNING: Old/outdated code for splitting genome file.
+Use bin_genome.py instead
+
 split_genome.py: Reads in a genome fa file and splits sequences into
 bins based on GC-background.
 

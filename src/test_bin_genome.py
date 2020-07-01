@@ -1,7 +1,7 @@
 """
-test_split_genome.py
+test_bin_genome.py
 
-A quick test suite for split_genome.py.
+A quick test suite for bin_genome.py.
 
 AUTHOR(S):
     Eric Yeh
@@ -10,7 +10,7 @@ AUTHOR(S):
 import os
 import math
 
-from split_genome import splitGenome, gcBackground, countGCAT
+from split_genome import gcBackground, countGCAT
 from bin_genome import binGenome
 
 def failTest(err):
