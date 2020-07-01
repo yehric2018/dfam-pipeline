@@ -9,6 +9,13 @@ bin files based on their GC background. There will be a 2 kilobase
 (default) overlap between batches to capture sequences that might
 extend past the batch boundaries.
 
+You can run this script directly to generate bins for a given genome
+fa file:
+$ python3 bin_genome.py fa_file output_dir [-c C]
+where fa_file is the fa file containing the genome, output_dir is the
+directory where the batches should be written, and C is the number of
+bases per line in the output files (default unlimited bases per line)
+
 AUTHOR(S):
     Eric Yeh
 """
