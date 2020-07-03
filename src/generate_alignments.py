@@ -23,6 +23,7 @@ AUTHOR(S):
 #
 import argparse
 import os
+import subprocess
 
 DIV_VALUES = [14, 18, 20, 25, 30]
 
@@ -87,6 +88,7 @@ class ConsensusSequence:
         f = open(fa_file, "r")
         lines = f.readlines()
         description = lines[0][1:].split()
+        self.fname = fa_file
         self.name = description[0]
         self.seq = "".join([x[:-1] for x in lines[1:]])
         self.__setDivergence__(float(description[1].split("=")[1]))
@@ -108,16 +110,74 @@ class ConsensusSequence:
                 divVal = v
         self.divergence = divVal
 
+def runRMBlast(consensus, bin_file, output_dir):
+    """
+    runRMBlast(consensus, bin_file, output_dir) - Run RMBlast against
+    bin_file, generating all the alignments of the given
+    ConsensusSequence against that bin and placing the results in
+    output_dir.
+
+    The format of the output file produced will be:
+        [consensus_name]_[##]g.sc
+
+        Ex: DF00001_49g.sc
+
+    The first column of each entry in the output file is the score
+    for that particular alignment, which will be extracted in later
+    steps to calculate E-values and false discovery rate.
+
+    Args:
+        consensus - A ConsensusSequence generated from a fa file for
+            a single consensus sequence.
+        bin_file - File containing batches to align against, produced
+            from bin_genome.py.
+        output_dir - Directory to place output alignment files.
+    """
+    # For each bin file, run RMBlast, redirect output to new file in output_dir
+    print(consensus.name + " with " + bin_file)
+
+def generateAlignments(consensus_file, bins_dir, output_dir):
+    """
+    generateAlignments(consensus_file, bins_dir, output_dir) -
+    Wrapper for runRMBlast that generates alignments for every bin in
+    bins_dir, printing them all to files in output_dir.
+
+    Produces a ConsensusSequence from the given path to a consensus
+    file, then for each bin file in bins_dir, runs them in RMBlast.
+
+    Args:
+        consensus_file - Path to a .fa file containing a single
+            consensus sequence.
+        bins_dir - Path to directory containing bins from a genome,
+            produced from bin_genome.py.
+        output_dir - Directory to place output alignments files.
+    """
+    cs = ConsensusSequence(consensus_file)
+    binlist = [ b for b in os.listdir(bins_dir) ]
+    for b in binlist:
+        runRMBlast(cs, os.path.join(bins_dir, b), output_dir)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("fa_file",
-            help="path to the fa_file containing consensus sequences")
+            help="path to the fa_file containing consensus " +
+                "sequence(s), use -m flag to indicate multiple " +
+                "consensuses in the given file")
+    parser.add_argument("-m", action="store_true",
+            help="find alignments for all consensus sequences in a " +
+                    "single .fa file")
+    parser.add_argument("bins_dir",
+            help="path to directory containing genome bins")
+    parser.add_argument("output_dir",
+            help="path to directory to put alignment output files")
     args = parser.parse_args()
 
-    dir_name = splitConsensus(args.fa_file)
+    if args.m:
+        dir_name = splitConsensus(args.fa_file)
 
-    filelist = [ f for f in os.listdir(dir_name) ]
-    for f in filelist:
-        cs = ConsensusSequence(os.path.join(dir_name, f))
-        print(cs.name + ": " + str(cs.divergence))
-        print(cs.seq + "\n")
+        filelist = [ f for f in os.listdir(dir_name) ]
+        for f in filelist:
+            generateAlignments(os.path.join(dir_name, f),
+                            args.bins_dir, args.output_dir)
+    else:
+        generateAlignments(fa_file, args.bins_dir, args.output_dir)
