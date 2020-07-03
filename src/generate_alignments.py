@@ -26,6 +26,12 @@ import os
 import subprocess
 
 DIV_VALUES = [14, 18, 20, 25, 30]
+GAP_PARAMS = {
+        14: {"open": -35, "ins": -7, "del": -6},
+        18: {"open": -33, "ins": -5, "del": -4},
+        20: {"open": -30, "ins": -6, "del": -5},
+        25: {"open": -27, "ins": -6, "del": -5}
+    }
 
 def splitConsensus(fa_file):
     """
@@ -69,6 +75,18 @@ class ConsensusSequence:
     Stores information on a given consensus sequence, such as the
     sequence name, average kimura divergence, and the sequence
     itself.
+
+    Fields:
+        fname - Name of .fa file this consensus sequence is derived
+            from.
+        name - Name of the consensus sequence as given in original
+            .fa file.
+        seq - Sequence of bases making up this consensus sequence.
+        divergence - Rounded average kimura divergence as given in
+            original .fa file.
+        gi - gap init parameter
+        ige - insertion parameter
+        dge - deletion parameter
     """
     def __init__(self, fa_file):
         """
@@ -96,7 +114,8 @@ class ConsensusSequence:
 
     def __setDivergence__(self, div):
         """
-        Helper function called by __init__ to set self.divergence.
+        Helper function called by __init__ to set self.divergence,
+        along with other parameters needed for running RMBlast.
 
         Args:
             div - avg kimura divergence from fa file.
@@ -108,7 +127,11 @@ class ConsensusSequence:
             if abs(v - div) < minDist:
                 minDist = abs(v - div)
                 divVal = v
+
         self.divergence = divVal
+        self.gi = GAP_PARAMS[divVal]["open"]
+        self.ige = GAP_PARAMS[divVal]["ins"]
+        self.dge = GAP_PARAMS[divVal]["del"]
 
 def runRMBlast(consensus, bin_file, output_dir):
     """
@@ -133,8 +156,9 @@ def runRMBlast(consensus, bin_file, output_dir):
             from bin_genome.py.
         output_dir - Directory to place output alignment files.
     """
+    print("Running RMBlast for " + consensus.name + " against " + bin_file)
+    # Create new file name, the name of the output file for this bin/consensus
     # For each bin file, run RMBlast, redirect output to new file in output_dir
-    print(consensus.name + " with " + bin_file)
 
 def generateAlignments(consensus_file, bins_dir, output_dir):
     """
