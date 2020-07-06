@@ -1,2 +1,5 @@
-data/
+data/consensus/
+data/genomes/
+data/hg38bins/
+data/test_data/
 src/bins/
