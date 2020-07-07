@@ -22,6 +22,7 @@ AUTHOR(S):
 # Module imports
 #
 import argparse
+import sys
 import os
 import subprocess
 
@@ -141,9 +142,9 @@ def runRMBlast(consensus, bin_file, output_dir):
     output_dir.
 
     The format of the output file produced will be:
-        [consensus_name]_[##]g.sc
+        [consensus_name]_[##]p[##]g.sc
 
-        Ex: DF00001_49g.sc
+        Ex: DF00001_25p49g.sc
 
     The first column of each entry in the output file is the score
     for that particular alignment, which will be extracted in later
@@ -156,9 +157,35 @@ def runRMBlast(consensus, bin_file, output_dir):
             from bin_genome.py.
         output_dir - Directory to place output alignment files.
     """
-    print("Running RMBlast for " + consensus.name + " against " + bin_file)
-    # Create new file name, the name of the output file for this bin/consensus
-    # For each bin file, run RMBlast, redirect output to new file in output_dir
+    bin_num = bin_file[-5:-3]
+    fname = (consensus.name + "_" + str(consensus.divergence) + "p" +
+            bin_num + "g.sc")
+    matrix_file = ("../data/matrices/" + str(consensus.divergence) +
+                "p" + bin_num + "g.matrix")
+
+    params = [ "/home/rhubley/scripts/rbn",
+                bin_file, consensus.fname,
+                "-matrix", matrix_file,
+                "-gi", str(consensus.gi),
+                "-ige", str(consensus.ige),
+                "-dge", str(consensus.dge),
+                "-minmatch", "7",
+                "-masklevel", "101",
+                "-minscore", "50",
+                "-a", "-r" ]
+    print(" ".join(params))
+
+    fStdout = open(os.path.join(output_dir, fname), "w")
+    fStderr = open(os.path.join(output_dir, "stderr"), "w")
+    proc = None
+    try:
+        proc = subprocess.check_call(params, stdout=fStdout,
+                                        stderr=fStderr)
+    except:
+        fStdout.write("rmblast exception: " + str(sys.exc_info()[0]) )
+        pass
+    fStdout.close()
+    fStderr.close()
 
 def generateAlignments(consensus_file, bins_dir, output_dir):
     """
@@ -179,7 +206,8 @@ def generateAlignments(consensus_file, bins_dir, output_dir):
     cs = ConsensusSequence(consensus_file)
     binlist = [ b for b in os.listdir(bins_dir) ]
     for b in binlist:
-        runRMBlast(cs, os.path.join(bins_dir, b), output_dir)
+        if b[:9] != "ncResults":
+            runRMBlast(cs, os.path.join(bins_dir, b), output_dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -204,4 +232,4 @@ if __name__ == '__main__':
             generateAlignments(os.path.join(dir_name, f),
                             args.bins_dir, args.output_dir)
     else:
-        generateAlignments(fa_file, args.bins_dir, args.output_dir)
+        generateAlignments(args.fa_file, args.bins_dir, args.output_dir)

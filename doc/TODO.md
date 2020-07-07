@@ -1,5 +1,3 @@
-- Document all available fields in ConsensusSequence
 - Generate alignment files for consensus sequence test file by running rmblast (implement runRMBlast)
 - Create list of scores from both dfamseq and benchmark bins to be used for generating E-values
-- Transfer util functions from split_genome.py so file can be eliminated
 - Create rough draft of poster presentation

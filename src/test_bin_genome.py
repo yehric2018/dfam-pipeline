@@ -10,8 +10,9 @@ AUTHOR(S):
 import os
 import math
 
-from split_genome import gcBackground, countGCAT
 from bin_genome import binGenome
+
+GC_BINS = [35, 37, 39, 41, 43, 45, 47, 49, 51, 53]
 
 def failTest(err):
     print("FAILURE: " + err)
@@ -25,7 +26,59 @@ def clearDirectory(path):
     for f in filelist:
         os.remove(os.path.join(path, f))
 
-def test_splitGenome(fa_file, batch_length = 60000, batch_overlap = 2000):
+def countGCAT(seq):
+    """
+    countGCAT(seq) - Counts the number of GC bases and AT bases in
+    seq.
+
+    Args:
+        seq: A string of DNA nucleotides.
+
+    Returns:
+        A tuple (gc, at), where 'gc' is the count of G and C bases and
+        'at' is the count of A and T bases.
+    """
+    gc = 0
+    at = 0
+    for base in seq.lower():
+        if base == 'g' or base == 'c':
+            gc += 1
+        elif base == 'a' or base == 't':
+            at += 1
+    return (gc, at)
+
+def gcBackground(gc, at):
+    """
+    gcBackground(gc, at) - Computes the GC background from the given
+    numbers of GC bases and AT bases. The GC background is computed
+    as (100 * # of gc bases / (# of gc bases + # of at bases))
+    rounded to the nearest integer.
+
+    If gc + at = 0, return -1 instead.
+
+    Args:
+        gc: number of G and C nucleotides
+        at: number of A and T nucleotides
+
+    Returns: an int representing the GC background from the given
+    parameters, or -1 if gc + at = 0.
+    """
+    gcat = gc + at
+    if gcat == 0:
+        return -1
+    gcb = 100.0 * gc / gcat
+    minDist = 100.0
+    binNum = -1
+
+    # Can probably use a binary search algorithm later
+    #    O(1)/O(N) => O(1)/O(logN)
+    for b in GC_BINS:
+        if abs(b - gcb) < minDist:
+            minDist = abs(b - gcb)
+            binNum = b
+    return binNum
+
+def test_binGenome(fa_file, batch_length = 60000, batch_overlap = 2000):
     clearDirectory("testbins")
     binGenome(fa_file, "testbins/", batch_length, batch_overlap)
     filelist = [ os.path.join("testbins", f) for f in os.listdir("testbins") ]
@@ -74,8 +127,8 @@ def test_splitGenome(fa_file, batch_length = 60000, batch_overlap = 2000):
 
 
 if __name__ == '__main__':
-    test_splitGenome("../data/test_data/short-human.fa")
-    test_splitGenome("../data/test_data/short-human.fa", 8, 3)
-    test_splitGenome("../data/test_data/split_human-1mb.fa")
-    test_splitGenome("../data/test_data/human-1mb.fa")
-    test_splitGenome("../data/test_data/split_human-1mb.fa", 1234, 50)
+    test_binGenome("../data/test_data/short-human.fa")
+    test_binGenome("../data/test_data/short-human.fa", 8, 3)
+    test_binGenome("../data/test_data/split_human-1mb.fa")
+    test_binGenome("../data/test_data/human-1mb.fa")
+    test_binGenome("../data/test_data/split_human-1mb.fa", 1234, 50)
