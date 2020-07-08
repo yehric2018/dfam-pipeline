@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 """
 bin_genome.py: Reads in a genome fa file and splits sequences into
 bins based on GC-background.
