@@ -1,5 +1,5 @@
-- Generate alignment files for consensus sequence test file by running rmblast (implement runRMBlast)
-- Create list of scores from both dfamseq and benchmark bins to be used for generating E-values
+- Parse score values from alignment file, along with ranges
+- Generate E-values from scores
 - Improve documentations on current Python scripts
 - Might have to rerun DF00..01 against bin 35
 - Create rough draft of poster presentation

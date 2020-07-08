@@ -33,6 +33,8 @@ def generateScoreThreshold(genome_file, benchmark_file):
     Returns: score threshold for this consensus sequence computed
         from the given alignments.
     """
+    genomic_hits = []
+    benchmark_hits = []
     gf = open(genome_file, "r")
     bf = open(benchmark_file, "r")
     regex = re.compile(r"^\s*(\d+)\s+\d+\.\d+\s+\d+\.\d+")
@@ -42,9 +44,9 @@ def generateScoreThreshold(genome_file, benchmark_file):
         mo = regex.search(line)
         if mo:
             count += 1
-            print(mo.group(1))
+            genomic_hits.append(int(mo.group(1)))
         line = gf.readline()
-    print(count)
+    print(genomic_hits)
 
 if __name__ == '__main__':
     generateScoreThreshold("../results/test_alignments/dfamseq/DF0000001_25p35g.sc",
