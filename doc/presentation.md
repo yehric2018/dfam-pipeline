@@ -11,6 +11,10 @@
 - Questions: How sensitive are the model thresholds to the assembly used? Is it sufficient to use on set of threhsolds for all mammals in which the model is applicable? How significant is the threshold differences of other isochores? What is the expected improvement to annotation if we switch to using per-family thresholds?
 ## Workflow
 - Use Robert's picture to demonstrate the workflow
+- Step 1: Split the genome into batches and place into bins based on GC background
+- Step 2: Split consensus sequence, run each one once in RMBlast against all bins for its corresponding genome to get alignments
+- Step 3: Use regex to parse alignment file and grab scores, calculate E-values using a given equation
+- Give a list of parameters used (gap params, Gumbel params, etc)
 ## Future Work
 - Have to calculate score thresholds using both empirical and theoretical methods
 - Run several consensus sequences through this workflow to develop the score thresholds
@@ -18,4 +22,6 @@
 - Find ways to optimize code for running several consensus sequences
 - Alignments used in adjudication project
 ## References/Acknowledgements
-text goes here
+- Dfam paper
+- Transposable elements paper
+- RepeatMasker paper?
