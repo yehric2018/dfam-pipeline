@@ -30,10 +30,10 @@ import subprocess
 
 DIV_VALUES = [14, 18, 20, 25, 30]
 GAP_PARAMS = {
-        14: {"open": -35, "ext": -6, "ins": -7, "del": -6},
-        18: {"open": -33, "ext": -5, "ins": -5, "del": -4},
-        20: {"open": -30, "ext": -5, "ins": -6, "del": -5},
-        25: {"open": -27, "ext": -5, "ins": -6, "del": -5}
+        14: {"open": -35, "ext": -6},
+        18: {"open": -33, "ext": -5},
+        20: {"open": -30, "ext": -5},
+        25: {"open": -27, "ext": -5}
     }
 
 def splitConsensus(fa_file):
@@ -88,8 +88,7 @@ class ConsensusSequence:
         divergence - Rounded average kimura divergence as given in
             original .fa file.
         gi - gap init parameter
-        ige - insertion parameter
-        dge - deletion parameter
+        ge - gap extension parameter
     """
     def __init__(self, fa_file):
         """
@@ -134,8 +133,6 @@ class ConsensusSequence:
         self.divergence = divVal
         self.gi = GAP_PARAMS[divVal]["open"]
         self.ge = GAP_PARAMS[divVal]["ext"]
-        self.ige = GAP_PARAMS[divVal]["ins"]
-        self.dge = GAP_PARAMS[divVal]["del"]
 
 def runRMBlast(consensus, bin_file, output_dir):
     """
