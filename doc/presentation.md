@@ -5,7 +5,7 @@
 - To maintain a low false discovery rate, we annotate a simulated sequence preserving dinucleotide frequencies which should only yield false hits. We estimate that each hit in the simulated sequence equates to one false hit in the genomic sequence.
 ## Motivation
 - Since DNA sequences mutate over time, there are often slight variations between TEs of the same family. To account for these differences, we classify TEs with the Smith-Waterman/BLAST algorithm, which aligns the consensus sequence of a TE family with a sequence of DNA and computes a similarity score. In the past, we have a used fixed score threshold, where TE alignments that surpass this threshold are considered part of the TE family. By keeping this threshold high, we can stay safe from potential false matches/hits, but we risk missing older and more diverged matches as a consequence. To maintain high sensitivity in our annotation, we should find a minimal score threshold that can allow for more matches while keeping the false discovery rate reasonably low, in our case below 0.2%.
-- `Do we need a hypothesis?`
+- <span style="color:red">Do we need a hypothesis?</span>
 ## Objective
 - Our goal is to create a workflow that can compute sensitive but conservative score thresholds for each TE family consensus sequence per GC background. From the resulting thresholds we can answer the following questions:
   - How sensitive are the model thresholds to the assembly used?
