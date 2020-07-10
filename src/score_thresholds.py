@@ -18,6 +18,7 @@ import re
 import math
 
 GUMBEL = {}
+FDR_THRESHOLD = 0.002
 
 class Hit:
     """
@@ -94,6 +95,46 @@ def readScoresFromFile(sc_file):
     hits.sort(key=lambda hit: hit.score, reverse=True)
     return hits
 
+def empiricalFDRCalculation(genomic_hits, benchmark_hits):
+    """
+    empiricalFDRCalculation(genomic_hits, benchmark_hits) - Uses
+    empirical FDR calculation to compute a score threshold for this
+    consensus sequence for a certain GC background. There must be
+    sufficient alignments for a family to a benchmark (FP) sequence.
+
+    Searches genomic/benchmark hits sorted (high to low) by raw score,
+    stops when FP_hits / cumulative_genomic > FDR_target. The
+    threshold is chosen to be 0.05 + score of hit that exceeded the
+    threshold.
+
+    Args:
+        genomic_hits: List of Hit objects obtained from alignment
+            of consensus against genomic sequence.
+        benchmark_hits: List of Hit objects obtained from alignment
+            of consensus against bnechmark sequence.
+
+    Returns: score threshold that keeps the false discovery rate
+        below 0.2%.
+    """
+    fp_hits = 0
+    hits = 0
+    i = 0
+    j = 0
+    if genomic_hits[i].score < benchmark_hits[j].score:
+        return genomic_hits[i].score + 0.05
+    i += 1
+    hits += 1
+    while fp_hits / hits < FDR_THRESHOLD:
+        if genomic_hits[i].score < benchmark_hits[j].score:
+            fp_hits += 1
+            j += 1
+        else:
+            i += 1
+        hits += 1
+    print(genomic_hits[i].score + 0.05)
+    print(i)
+    return genomic_hits[i].score + 0.05
+
 def generateScoreThreshold(genome_file, benchmark_file):
     """
     generateScoreThreshold(genome_file, benchmark_file) -
@@ -120,8 +161,11 @@ def generateScoreThreshold(genome_file, benchmark_file):
         conn.close()
     genomic_hits = readScoresFromFile(genome_file)
     genomic_e = [computeEValue(h, matrix) for h in genomic_hits]
-    print(genomic_e)
-    #benchmark_hits = readScoresFromFile(benchmark_file)
+    benchmark_hits = readScoresFromFile(benchmark_file)
+    print(benchmark_hits[0])
+    benchmark_e = [computeEValue(h, matrix) for h in benchmark_hits]
+
+    empiricalFDRCalculation(genomic_hits, benchmark_hits)
 
 if __name__ == '__main__':
     generateScoreThreshold("../results/test_alignments/dfamseq/DF0000001_25p35g.sc",
