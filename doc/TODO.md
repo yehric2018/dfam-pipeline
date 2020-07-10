@@ -1,5 +1,4 @@
-- Parse score values from alignment file, along with ranges
-- Generate E-values from scores
 - Improve documentations on current Python scripts
+- Calculate score threshold using theoretical method
 - Might have to rerun DF00..01 against bin 35
 - Create rough draft of poster presentation
