@@ -18,27 +18,11 @@ import re
 import math
 
 GUMBEL = {}
+m, n = 0
 FDR_THRESHOLD = 0.002
-
-class Hit:
-    """
-    Stores information on hits needed to compute E-values.
-
-    Fields:
-        score - score of alignment
-        m - length of query sequence
-        n - length of subject sequence
-    """
-    def __init__(self, score, m, n):
-        """
-        Initialize this hit object with the given params.
-        """
-        self.score = score
-        self.m = m
-        self.n = n
-
-    def __repr__(self):
-        return str(self.score)
+FDR_THEORY_TARGET = 0.01
+TEMP_GENOME_SIZE = 3099000000
+TEMP_CONSENSUS_SIZE = 262
 
 def computeEValue(hit, matrix):
     """
@@ -53,8 +37,8 @@ def computeEValue(hit, matrix):
     the raw score of the alignment and "m" and "n" are the lengths of
     the aligned query and subject sequences.
     """
-    return (GUMBEL[matrix]["k"] * hit.m * hit.n *
-                math.exp(-GUMBEL[matrix]["lambda"] * hit.score))
+    return (GUMBEL[matrix]["k"] * TEMP_CONSENSUS_SIZE * TEMP_GENOME_SIZE *
+                math.exp(-GUMBEL[matrix]["lambda"] * hit))
 
 def readScoresFromFile(sc_file):
     """
@@ -73,26 +57,15 @@ def readScoresFromFile(sc_file):
     print(matrix)
     f = open(sc_file, "r")
     scoreRegex = re.compile(r"^\s*(\d+)\s+\d+\.\d+\s+\d+\.\d+")
-    rangeRegex1 = re.compile(r"\s*(\d+)\s+(\d+)\s+\(\d+\)\s+\S+\s+(\d+)\s+(\d+)\s+\(\d+\)$")
-    rangeRegex2 = re.compile(r"\s*(\d+)\s+(\d+)\s+\(\d+\)\s+C\s+\S+\s+\(\d+\)\s+(\d+)\s+(\d+)$")
     hits = []
     line = f.readline()
     while line != "":
         mo = scoreRegex.search(line)
         if mo:
             score = int(mo.group(1))
-            mo1 = rangeRegex1.search(line)
-            mo2 = rangeRegex2.search(line)
-            if mo1:
-                n = int(mo1.group(2)) - int(mo1.group(1))
-                m = int(mo1.group(4)) - int(mo1.group(3))
-                hits.append(Hit(score, m, n))
-            elif mo2:
-                n = int(mo2.group(2)) - int(mo2.group(1))
-                m = int(mo2.group(3)) - int(mo2.group(4))
-                hits.append(Hit(score, m, n))
+            hits.append(score)
         line = f.readline()
-    hits.sort(key=lambda hit: hit.score, reverse=True)
+    hits.sort(reverse=True)
     return hits
 
 def empiricalFDRCalculation(genomic_hits, benchmark_hits):
@@ -120,20 +93,55 @@ def empiricalFDRCalculation(genomic_hits, benchmark_hits):
     hits = 0
     i = 0
     j = 0
-    if genomic_hits[i].score < benchmark_hits[j].score:
-        return genomic_hits[i].score + 0.05
+    if genomic_hits[i]< benchmark_hits[j]:
+        return genomic_hits[i]+ 0.05
     i += 1
     hits += 1
     while fp_hits / hits < FDR_THRESHOLD:
-        if genomic_hits[i].score < benchmark_hits[j].score:
+        if genomic_hits[i]< benchmark_hits[j]:
             fp_hits += 1
             j += 1
         else:
+            hits += 1
             i += 1
-        hits += 1
-    print(genomic_hits[i].score + 0.05)
+    print(genomic_hits[i]+ 0.05)
     print(i)
-    return genomic_hits[i].score + 0.05
+    return genomic_hits[i]+ 0.05
+
+def theoreticalFDRCalculation(genomic_hits, benchmark_hits, matrix):
+    """
+    theoreticalFDRCalculation(genomic_hits, benchmark_hits) - Uses
+    theoretical FDR calculation to compute a score threshold for this
+    consensus sequence for a certain GC background.
+
+    The score threshold is required to be at least as high as the
+    score corresponding to an E-value of min(1000, (genomic_hits -
+    benchmark_hits) * FDR_threshold). This allows us to avoid
+    unreasonably liberal scores for families with a large number of
+    genomic hits and few, if any, benchmark hits.
+
+    Args:
+        genomic_hits: List of Hit objects obtained from alignment
+            of consensus against genomic sequence.
+        benchmark_hits: List of Hit objects obtained from alignment
+            of consensus against bnechmark sequence.
+
+    Returns: theoretical score threshold that should keep the false
+        discovery rate below 0.2%.
+    """
+    print("Theoretical calculation:")
+    print(len(genomic_hits))
+    print(len(benchmark_hits))
+    tp_estimate = len(genomic_hits) - len(benchmark_hits)
+    if tp_estimate <= 0 or tp_estimate > 1000:
+        tp_estimate = 1000
+    target = tp_estimate * FDR_THEORY_TARGET
+
+    # Convert e-value target into score threshold
+    in_log = GUMBEL[matrix]['k'] * TEMP_CONSENSUS_SIZE * TEMP_GENOME_SIZE
+    raw = (math.log(in_log) - math.log(target)) / GUMBEL[matrix]['lambda']
+    print(raw)
+    return raw
 
 def generateScoreThreshold(genome_file, benchmark_file):
     """
@@ -150,24 +158,25 @@ def generateScoreThreshold(genome_file, benchmark_file):
     Returns: score threshold for this consensus sequence computed
         from the given alignments.
     """
+    conn = sqlite3.connect("../data/consensus.db")
+    c = conn.cursor()
+    #m = c.execute("SELECT size FROM consensus WHERE sequence = ")[0][0]
     if not GUMBEL:
-        conn = sqlite3.connect("../data/gumbel.db")
-        c = conn.cursor()
-        for row in c.execute("SELECT * FROM params"):
+        for row in c.execute("SELECT * FROM gumbel"):
             matrix = row[0]
             GUMBEL[matrix] = {}
             GUMBEL[matrix]["lambda"] = row[3]
             GUMBEL[matrix]["k"] = row[4]
-        conn.close()
+    conn.close()
     genomic_hits = readScoresFromFile(genome_file)
     genomic_e = [computeEValue(h, matrix) for h in genomic_hits]
     benchmark_hits = readScoresFromFile(benchmark_file)
-    print(benchmark_hits[0])
+    print("first benchmark: " + str(benchmark_hits[0]))
     benchmark_e = [computeEValue(h, matrix) for h in benchmark_hits]
 
-    empiricalFDRCalculation(genomic_hits, benchmark_hits)
+    print(max(empiricalFDRCalculation(genomic_hits, benchmark_hits), theoreticalFDRCalculation(genomic_hits, benchmark_hits, matrix)))
 
 if __name__ == '__main__':
-    generateScoreThreshold("../results/test_alignments/dfamseq/DF0000001_25p35g.sc",
-                            "../results/test_alignments/benchmark/DF0000001_25p35g.sc")
+    generateScoreThreshold("../results/test_alignments/dfamseq/DF0000001_25p37g.sc",
+                            "../results/test_alignments/benchmark/DF0000001_25p37g.sc")
 

@@ -1,4 +1,4 @@
 - Improve documentations on current Python scripts
 - Calculate score threshold using theoretical method
+- Parse m and n values from fa files
 - Might have to rerun DF00..01 against bin 35
-- Create rough draft of poster presentation
