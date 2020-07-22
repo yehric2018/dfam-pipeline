@@ -2,4 +2,5 @@
 - Revise score threshold using theoretical calculation method?
 - Place lengths and database into sequence where they can be retrieved throughout workflow
 - Add thresholds to database
+- Start building automated workflow infrastructure
 - Might have to rerun DF00..01 against bin 35

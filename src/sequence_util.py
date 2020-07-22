@@ -88,5 +88,5 @@ def genomeSize(fa_file):
     return size
 
 if __name__ == '__main__':
-    #genomeSize("../data/genomes/dfamseq.mask")
-    consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000001.fa")
+    print(genomeSize("../data/genomes/dfamseq.mask"))
+    #consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000001.fa")

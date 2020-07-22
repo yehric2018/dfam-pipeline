@@ -13,14 +13,14 @@ AUTHOR(S):
 #
 # Module imports
 #
-import sqlite3
 import re
 import math
 
-GUMBEL = {}
+GUMBEL = {'25p53g': {'lambda': 0.109152, 'k': 0.111427}, '14p51g': {'lambda': 0.126273, 'k': 0.271705}, '25p41g': {'lambda': 0.113153, 'k': 0.142018}, '14p39g': {'lambda': 0.120541, 'k': 0.267775}, '14p35g': {'lambda': 0.126797, 'k': 0.284773}, '18p43g': {'lambda': 0.121582, 'k': 0.234784}, '25p51g': {'lambda': 0.114421, 'k': 0.13735}, '18p35g': {'lambda': 0.124283, 'k': 0.246276}, '25p35g': {'lambda': 0.108087, 'k': 0.126783}, '25p45g': {'lambda': 0.108282, 'k': 0.126305}, '14p37g': {'lambda': 0.126554, 'k': 0.284202}, '14p43g': {'lambda': 0.123083, 'k': 0.279322}, '18p41g': {'lambda': 0.114068, 'k': 0.215272}, '25p39g': {'lambda': 0.110804, 'k': 0.133886}, '14p41g': {'lambda': 0.123274, 'k': 0.278371}, '20p43g': {'lambda': 0.116161, 'k': 0.207456}, '18p45g': {'lambda': 0.121927, 'k': 0.241789}, '20p51g': {'lambda': 0.11795, 'k': 0.183554}, '14p47g': {'lambda': 0.119249, 'k': 0.258223}, '14p53g': {'lambda': 0.123762, 'k': 0.258946}, '20p49g': {'lambda': 0.121086, 'k': 0.190207}, '18p49g': {'lambda': 0.127971, 'k': 0.257942}, '18p51g': {'lambda': 0.115054, 'k': 0.191605}, '18p39g': {'lambda': 0.126286, 'k': 0.261353}, '25p43g': {'lambda': 0.123854, 'k': 0.176985}, '18p53g': {'lambda': 0.113257, 'k': 0.190965}, '14p49g': {'lambda': 0.119393, 'k': 0.255202}, '25p37g': {'lambda': 0.109651, 'k': 0.129716}, '20p35g': {'lambda': 0.117394, 'k': 0.195042}, '20p37g': {'lambda': 0.118879, 'k': 0.203742}, '25p47g': {'lambda': 0.108085, 'k': 0.127639}, '25p49g': {'lambda': 0.117029, 'k': 0.151864}, '20p41g': {'lambda': 0.114931, 'k': 0.197257}, '20p47g': {'lambda': 0.124492, 'k': 0.226433}, '20p53g': {'lambda': 0.12917, 'k': 0.213967}, '20p39g': {'lambda': 0.127701, 'k': 0.234063}, '18p37g': {'lambda': 0.124933, 'k': 0.246589}, '18p47g': {'lambda': 0.11989, 'k': 0.233897}, '14p45g': {'lambda': 0.130133, 'k': 0.302126}, '20p45g': {'lambda': 0.116422, 'k': 0.189823}}
 m = n = 0
 FDR_THRESHOLD = 0.002
 FDR_THEORY_TARGET = 0.01
+MAX_E_TARGET = 1000
 TEMP_GENOME_SIZE = 3099000000
 TEMP_CONSENSUS_SIZE = 262
 
@@ -54,7 +54,6 @@ def readScoresFromFile(sc_file):
         in decreasing order by score.
     """
     matrix = sc_file[-9:-3]
-    print(matrix)
     f = open(sc_file, "r")
     scoreRegex = re.compile(r"^\s*(\d+)\s+\d+\.\d+\s+\d+\.\d+")
     hits = []
@@ -104,8 +103,6 @@ def empiricalFDRCalculation(genomic_hits, benchmark_hits):
         else:
             hits += 1
             i += 1
-    print(genomic_hits[i]+ 0.05)
-    print(i)
     return genomic_hits[i]+ 0.05
 
 def theoreticalFDRCalculation(genomic_hits, benchmark_hits, matrix):
@@ -129,18 +126,16 @@ def theoreticalFDRCalculation(genomic_hits, benchmark_hits, matrix):
     Returns: theoretical score threshold that should keep the false
         discovery rate below 0.2%.
     """
-    print("Theoretical calculation:")
-    print(len(genomic_hits))
-    print(len(benchmark_hits))
     tp_estimate = len(genomic_hits) - len(benchmark_hits)
-    if tp_estimate <= 0 or tp_estimate > 1000:
-        tp_estimate = 1000
+    if tp_estimate < 0:
+        tp_estimate = 0
     target = tp_estimate * FDR_THEORY_TARGET
+    if target == 0 or target > MAX_E_TARGET:
+        target = MAX_E_TARGET
 
     # Convert e-value target into score threshold
     in_log = GUMBEL[matrix]['k'] * TEMP_CONSENSUS_SIZE * TEMP_GENOME_SIZE
     raw = (math.log(in_log) - math.log(target)) / GUMBEL[matrix]['lambda']
-    print(raw)
     return raw
 
 def generateScoreThreshold(genome_file, benchmark_file):
@@ -158,25 +153,21 @@ def generateScoreThreshold(genome_file, benchmark_file):
     Returns: score threshold for this consensus sequence computed
         from the given alignments.
     """
-    conn = sqlite3.connect("../data/consensus.db")
-    c = conn.cursor()
-    #m = c.execute("SELECT size FROM consensus WHERE sequence = ")[0][0]
-    if not GUMBEL:
-        for row in c.execute("SELECT * FROM gumbel"):
-            matrix = row[0]
-            GUMBEL[matrix] = {}
-            GUMBEL[matrix]["lambda"] = row[3]
-            GUMBEL[matrix]["k"] = row[4]
-    conn.close()
+    consensus = genome_file.split("_")[0].split("/")[-1]
+    matrix = genome_file[-9:-3]
+    print("computing score threshold for " + consensus + " with matrix " + matrix)
     genomic_hits = readScoresFromFile(genome_file)
     genomic_e = [computeEValue(h, matrix) for h in genomic_hits]
     benchmark_hits = readScoresFromFile(benchmark_file)
-    print("first benchmark: " + str(benchmark_hits[0]))
     benchmark_e = [computeEValue(h, matrix) for h in benchmark_hits]
 
-    print(max(empiricalFDRCalculation(genomic_hits, benchmark_hits), theoreticalFDRCalculation(genomic_hits, benchmark_hits, matrix)))
+    empirical = empiricalFDRCalculation(genomic_hits, benchmark_hits)
+    theoretical = theoreticalFDRCalculation(genomic_hits, benchmark_hits, matrix)
+    print("empirical score: " + str(empirical))
+    print("theoretical score: " + str(theoretical))
+    print("final score threshold: " + str(max(empirical, theoretical)))
 
 if __name__ == '__main__':
-    generateScoreThreshold("../results/test_alignments/dfamseq/DF0000001_25p35g.sc",
-                            "../results/test_alignments/benchmark/DF0000001_25p35g.sc")
+    generateScoreThreshold("../results/alignments/dfamseq/DF0000001_25p35g.sc",
+                            "../results/alignments/benchmark/DF0000001_25p35g.sc")
 
