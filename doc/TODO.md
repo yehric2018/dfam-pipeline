@@ -1,4 +1,5 @@
 - Improve documentations on current Python scripts
-- Calculate score threshold using theoretical method
-- Parse m and n values from fa files
+- Revise score threshold using theoretical calculation method?
+- Place lengths and database into sequence where they can be retrieved throughout workflow
+- Add thresholds to database
 - Might have to rerun DF00..01 against bin 35

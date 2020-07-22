@@ -28,6 +28,8 @@ import sys
 import os
 import subprocess
 
+from sequence_util import nearestDivergence
+
 DIV_VALUES = [14, 18, 20, 25, 30]
 GAP_PARAMS = {
         14: {"open": -35, "ext": -6},
@@ -122,15 +124,7 @@ class ConsensusSequence:
         Args:
             div - avg kimura divergence from fa file.
         """
-        minDist = 100.0
-        divVal = -1
-
-        for v in DIV_VALUES:
-            if abs(v - div) < minDist:
-                minDist = abs(v - div)
-                divVal = v
-
-        self.divergence = divVal
+        self.divergence = nearestDivergence(div)
         self.gi = GAP_PARAMS[divVal]["open"]
         self.ge = GAP_PARAMS[divVal]["ext"]
 

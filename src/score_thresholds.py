@@ -18,7 +18,7 @@ import re
 import math
 
 GUMBEL = {}
-m, n = 0
+m = n = 0
 FDR_THRESHOLD = 0.002
 FDR_THEORY_TARGET = 0.01
 TEMP_GENOME_SIZE = 3099000000
@@ -177,6 +177,6 @@ def generateScoreThreshold(genome_file, benchmark_file):
     print(max(empiricalFDRCalculation(genomic_hits, benchmark_hits), theoreticalFDRCalculation(genomic_hits, benchmark_hits, matrix)))
 
 if __name__ == '__main__':
-    generateScoreThreshold("../results/test_alignments/dfamseq/DF0000001_25p37g.sc",
-                            "../results/test_alignments/benchmark/DF0000001_25p37g.sc")
+    generateScoreThreshold("../results/test_alignments/dfamseq/DF0000001_25p35g.sc",
+                            "../results/test_alignments/benchmark/DF0000001_25p35g.sc")
 

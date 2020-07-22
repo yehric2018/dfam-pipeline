@@ -51,6 +51,17 @@ def consensusSize(fa_file):
 
     Returns: size of the given consensus
     """
+    consensus = open(fa_file, "r")
+    line = consensus.readline()
+    splitLine = line[1:].split()
+    name = splitLine[0]
+    div = nearestDivergence(float(splitLine[1].split("=")[1]))
+    size = 0
+    while line != "":
+        if line[0] != ">":
+            size += len(line) - 1
+        line = consensus.readline()
+    return size
 
 def genomeSize(fa_file):
     """
@@ -67,15 +78,15 @@ def genomeSize(fa_file):
 
     Returns: size of the given genome
     """
-    genome = open(fa_file, "r", newline="")
+    genome = open(fa_file, "r")
     line = genome.readline()
     size = 0
     while line != "":
         if line[0] != ">":
             size += len(line) - 1
         line = genome.readline()
-    print(size)
     return size
 
 if __name__ == '__main__':
-    genomeSize("../data/genomes/dfamseq.mask")
+    #genomeSize("../data/genomes/dfamseq.mask")
+    consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000001.fa")
