@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 """
-sequence_util.py -
+sequence_util.py - Set of utilities to determine data from fa files
+for consensus sequences and genomes.
 
 AUTHOR(S):
     Eric Yeh
@@ -10,7 +11,6 @@ AUTHOR(S):
 #
 # Module imports
 #
-import sqlite3
 
 DIV_VALUES = [14, 18, 20, 25, 30]
 

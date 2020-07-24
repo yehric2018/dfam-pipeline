@@ -15,13 +15,56 @@ AUTHOR(S):
 #
 import re
 import math
+import os
 
-GUMBEL = {'25p53g': {'lambda': 0.109152, 'k': 0.111427}, '14p51g': {'lambda': 0.126273, 'k': 0.271705}, '25p41g': {'lambda': 0.113153, 'k': 0.142018}, '14p39g': {'lambda': 0.120541, 'k': 0.267775}, '14p35g': {'lambda': 0.126797, 'k': 0.284773}, '18p43g': {'lambda': 0.121582, 'k': 0.234784}, '25p51g': {'lambda': 0.114421, 'k': 0.13735}, '18p35g': {'lambda': 0.124283, 'k': 0.246276}, '25p35g': {'lambda': 0.108087, 'k': 0.126783}, '25p45g': {'lambda': 0.108282, 'k': 0.126305}, '14p37g': {'lambda': 0.126554, 'k': 0.284202}, '14p43g': {'lambda': 0.123083, 'k': 0.279322}, '18p41g': {'lambda': 0.114068, 'k': 0.215272}, '25p39g': {'lambda': 0.110804, 'k': 0.133886}, '14p41g': {'lambda': 0.123274, 'k': 0.278371}, '20p43g': {'lambda': 0.116161, 'k': 0.207456}, '18p45g': {'lambda': 0.121927, 'k': 0.241789}, '20p51g': {'lambda': 0.11795, 'k': 0.183554}, '14p47g': {'lambda': 0.119249, 'k': 0.258223}, '14p53g': {'lambda': 0.123762, 'k': 0.258946}, '20p49g': {'lambda': 0.121086, 'k': 0.190207}, '18p49g': {'lambda': 0.127971, 'k': 0.257942}, '18p51g': {'lambda': 0.115054, 'k': 0.191605}, '18p39g': {'lambda': 0.126286, 'k': 0.261353}, '25p43g': {'lambda': 0.123854, 'k': 0.176985}, '18p53g': {'lambda': 0.113257, 'k': 0.190965}, '14p49g': {'lambda': 0.119393, 'k': 0.255202}, '25p37g': {'lambda': 0.109651, 'k': 0.129716}, '20p35g': {'lambda': 0.117394, 'k': 0.195042}, '20p37g': {'lambda': 0.118879, 'k': 0.203742}, '25p47g': {'lambda': 0.108085, 'k': 0.127639}, '25p49g': {'lambda': 0.117029, 'k': 0.151864}, '20p41g': {'lambda': 0.114931, 'k': 0.197257}, '20p47g': {'lambda': 0.124492, 'k': 0.226433}, '20p53g': {'lambda': 0.12917, 'k': 0.213967}, '20p39g': {'lambda': 0.127701, 'k': 0.234063}, '18p37g': {'lambda': 0.124933, 'k': 0.246589}, '18p47g': {'lambda': 0.11989, 'k': 0.233897}, '14p45g': {'lambda': 0.130133, 'k': 0.302126}, '20p45g': {'lambda': 0.116422, 'k': 0.189823}}
+from sequence_util import consensusSize
+
+GUMBEL = {'25p53g': {'lambda': 0.109152, 'k': 0.111427},
+        '14p51g': {'lambda': 0.126273, 'k': 0.271705},
+        '25p41g': {'lambda': 0.113153, 'k': 0.142018},
+        '14p39g': {'lambda': 0.120541, 'k': 0.267775},
+        '14p35g': {'lambda': 0.126797, 'k': 0.284773},
+        '18p43g': {'lambda': 0.121582, 'k': 0.234784},
+        '25p51g': {'lambda': 0.114421, 'k': 0.13735},
+        '18p35g': {'lambda': 0.124283, 'k': 0.246276},
+        '25p35g': {'lambda': 0.108087, 'k': 0.126783},
+        '25p45g': {'lambda': 0.108282, 'k': 0.126305},
+        '14p37g': {'lambda': 0.126554, 'k': 0.284202},
+        '14p43g': {'lambda': 0.123083, 'k': 0.279322},
+        '18p41g': {'lambda': 0.114068, 'k': 0.215272},
+        '25p39g': {'lambda': 0.110804, 'k': 0.133886},
+        '14p41g': {'lambda': 0.123274, 'k': 0.278371},
+        '20p43g': {'lambda': 0.116161, 'k': 0.207456},
+        '18p45g': {'lambda': 0.121927, 'k': 0.241789},
+        '20p51g': {'lambda': 0.11795, 'k': 0.183554},
+        '14p47g': {'lambda': 0.119249, 'k': 0.258223},
+        '14p53g': {'lambda': 0.123762, 'k': 0.258946},
+        '20p49g': {'lambda': 0.121086, 'k': 0.190207},
+        '18p49g': {'lambda': 0.127971, 'k': 0.257942},
+        '18p51g': {'lambda': 0.115054, 'k': 0.191605},
+        '18p39g': {'lambda': 0.126286, 'k': 0.261353},
+        '25p43g': {'lambda': 0.123854, 'k': 0.176985},
+        '18p53g': {'lambda': 0.113257, 'k': 0.190965},
+        '14p49g': {'lambda': 0.119393, 'k': 0.255202},
+        '25p37g': {'lambda': 0.109651, 'k': 0.129716},
+        '20p35g': {'lambda': 0.117394, 'k': 0.195042},
+        '20p37g': {'lambda': 0.118879, 'k': 0.203742},
+        '25p47g': {'lambda': 0.108085, 'k': 0.127639},
+        '25p49g': {'lambda': 0.117029, 'k': 0.151864},
+        '20p41g': {'lambda': 0.114931, 'k': 0.197257},
+        '20p47g': {'lambda': 0.124492, 'k': 0.226433},
+        '20p53g': {'lambda': 0.12917, 'k': 0.213967},
+        '20p39g': {'lambda': 0.127701, 'k': 0.234063},
+        '18p37g': {'lambda': 0.124933, 'k': 0.246589},
+        '18p47g': {'lambda': 0.11989, 'k': 0.233897},
+        '14p45g': {'lambda': 0.130133, 'k': 0.302126},
+        '20p45g': {'lambda': 0.116422, 'k': 0.189823}}
 m = n = 0
 FDR_THRESHOLD = 0.002
 FDR_THEORY_TARGET = 0.01
 MAX_E_TARGET = 1000
-TEMP_GENOME_SIZE = 3099000000
+THRESHOLDS_TABLE = open("../results/thresholds.txt", "a")
+TEMP_GENOME_SIZE = 3209286105
 TEMP_CONSENSUS_SIZE = 262
 
 def computeEValue(hit, matrix):
@@ -153,9 +196,9 @@ def generateScoreThreshold(genome_file, benchmark_file):
     Returns: score threshold for this consensus sequence computed
         from the given alignments.
     """
-    consensus = genome_file.split("_")[0].split("/")[-1]
+    consensus = genome_file.split("/")[-1].split("_")[0]
     matrix = genome_file[-9:-3]
-    print("computing score threshold for " + consensus + " with matrix " + matrix)
+    #print("computing score threshold for " + consensus + " with matrix " + matrix)
     genomic_hits = readScoresFromFile(genome_file)
     genomic_e = [computeEValue(h, matrix) for h in genomic_hits]
     benchmark_hits = readScoresFromFile(benchmark_file)
@@ -163,11 +206,62 @@ def generateScoreThreshold(genome_file, benchmark_file):
 
     empirical = empiricalFDRCalculation(genomic_hits, benchmark_hits)
     theoretical = theoreticalFDRCalculation(genomic_hits, benchmark_hits, matrix)
-    print("empirical score: " + str(empirical))
-    print("theoretical score: " + str(theoretical))
-    print("final score threshold: " + str(max(empirical, theoretical)))
+    #print("empirical score: " + str(empirical))
+    #print("theoretical score: " + str(theoretical))
+    #print("final score threshold: " + str(max(empirical, theoretical)))
+    line = (consensus + "\t" + matrix + "\t" + str(empirical) + "\t" +
+            str(theoretical) + "\t" + str((max(empirical, theoretical))))
+    print(line)
+    THRESHOLDS_TABLE.write(line + "\n")
+
+def scoreThresholds(genome_dir, benchmark_dir,
+        query_size=TEMP_CONSENSUS_SIZE, subject_size=TEMP_GENOME_SIZE):
+    """
+    scoreThresholds(genome_dir, benchmark_dir) -
+    Creates a table for all the alignment files found in the given
+    genomic and benchmark directories for a single consensus
+    sequence, entries tab-separated, in the following format:
+
+    sequence_name\tmatrix\tempirical\ttheoretical\tfinal
+
+    where sequence_name is the name of the consensus sequence, matrix
+    is the matrix used for this score calculation, empirical is the
+    threshold generated using the empirical method, theoretical is
+    the threshold generated using the theoretical method, and final
+    is the more conservative of the empirical and theoretical score
+    thresholds found.
+
+    Args:
+        genome_dir: Path to the directory containing genomic
+            alignments for a consensus sequence.
+        benchmark_dir: Path to the directory containing benchmark
+            alignments for the same consensus sequence used in
+            genome_dir, and with the same file names.
+        query_size: number of bps in consensus sequence.
+        subject_size: number of bps in subject sequence/genome.
+    """
+    THRESHOLDS_TABLE = open("../results/thresholds.txt", "a")
+    genome_list = os.listdir(genome_dir)
+    benchmark_list = os.listdir(benchmark_dir)
+    m = query_size
+    n = subject_size
+    for f in genome_list:
+        generateScoreThreshold(os.path.join(genome_dir, f),
+            os.path.join(benchmark_dir, f))
+    THRESHOLDS_TABLE.close()
 
 if __name__ == '__main__':
-    generateScoreThreshold("../results/alignments/dfamseq/DF0000001_25p35g.sc",
-                            "../results/alignments/benchmark/DF0000001_25p35g.sc")
+    scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000001/",
+            "../results/alignments/test_alignments/benchmark/DF0000001/")
+    scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000002/",
+            "../results/alignments/test_alignments//benchmark/DF0000002/",
+            query_size=consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000002.fa"))
+    scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000004/",
+            "../results/alignments/test_alignments/benchmark/DF0000004/",
+            query_size=consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000004.fa"))
+    scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000244/",
+            "../results/alignments/test_alignments/benchmark/DF0000244/",
+            query_size=consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000244.fa"))
+    # generateScoreThreshold("../results/alignments/dfamseq/DF0000001_25p35g.sc",
+    #                         "../results/alignments/benchmark/DF0000001_25p35g.sc")
 

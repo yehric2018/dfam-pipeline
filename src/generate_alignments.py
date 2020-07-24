@@ -125,8 +125,8 @@ class ConsensusSequence:
             div - avg kimura divergence from fa file.
         """
         self.divergence = nearestDivergence(div)
-        self.gi = GAP_PARAMS[divVal]["open"]
-        self.ge = GAP_PARAMS[divVal]["ext"]
+        self.gi = GAP_PARAMS[self.divergence]["open"]
+        self.ge = GAP_PARAMS[self.divergence]["ext"]
 
 def runRMBlast(consensus, bin_file, output_dir):
     """
@@ -152,8 +152,8 @@ def runRMBlast(consensus, bin_file, output_dir):
         output_dir - Directory to place output alignment files.
     """
     bin_num = bin_file[-5:-3]
-    fname = (consensus.name + "_" + str(consensus.divergence) + "p" +
-            bin_num + "g.sc")
+    fname = (consensus.name + "/" + consensus.name + "_" +
+            str(consensus.divergence) + "p" + bin_num + "g.sc")
     matrix_file = ("../data/matrices/" + str(consensus.divergence) +
                 "p" + bin_num + "g.matrix")
 
@@ -168,6 +168,8 @@ def runRMBlast(consensus, bin_file, output_dir):
                 "-a", "-r" ]
     print(" ".join(params))
 
+    if not os.path.exists(os.path.join(output_dir, consensus.name)):
+        os.mkdir(os.path.join(output_dir, consensus.name))
     fStdout = open(os.path.join(output_dir, fname), "w")
     fStderr = open(os.path.join(output_dir, "stderr"), "w")
     proc = None

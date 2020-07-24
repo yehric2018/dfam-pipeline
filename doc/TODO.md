@@ -1,6 +1,4 @@
 - Improve documentations on current Python scripts
-- Revise score threshold using theoretical calculation method?
-- Place lengths and database into sequence where they can be retrieved throughout workflow
-- Add thresholds to database
 - Start building automated workflow infrastructure
+- generate_alignments.py needs to separate alignments into directories based on consensus sequence
 - Might have to rerun DF00..01 against bin 35
