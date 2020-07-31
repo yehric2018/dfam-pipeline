@@ -15,61 +15,41 @@ AUTHOR(S):
 #
 import argparse
 import os
-
-from sequence_util import consensusSize, genomeSize
-from generate_alignments import generateAlignments, splitConsensus
-from score_thresholds import scoreThresholds
+import subprocess
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("consensus",
-            help="either a fa file containing one or more consensus" +
-                " sequences or a directory containing one or more " +
-                "fa files, each with exactly one consensus sequence.")
-    """
-    parser.add_argument("genome",
-            help="a fa file containing a single genome, which the" +
-                " given consensus sequences are associated with.")
-    parser.add_argument("benchmark",
-            help="a fa file containing a benchmark for the given " +
-                "genome.")
-    """
+        help="a fa file containing one or more consensus sequences")
     args = parser.parse_args()
 
-    consensus_dir = args.consensus
-    # Check if the consensus sequence is a file or directory
-    if os.path.isfile(args.consensus):
-        # if a file, must split into new directory with several consensus sequences
-        print("consensus sequence file")
-        consensus_dir = splitConsensus(args.consensus)
-    elif not os.path.isdir(args.consensus):
-        print("no consensus sequence found")
-        # if a directory, can use it as it is
+    consensus_fa = args.consensus
 
-    n = 3209286105
+    dir_names = [consensus_fa + "_1", consensus_fa + "_2", consensus_fa + "_3",
+                consensus_fa + "_4", consensus_fa + "_5"]
+    for dir_name in dir_names:
+        if not os.path.exists(dir_name):
+            os.mkdir(dir_name)
+        else:
+            filelist = os.listdir(dir_name)
+            for f in filelist:
+                os.remove(os.path.join(dir_name, f))
 
-    filelist = os.listdir(consensus_dir)
-    for f in filelist:
-        name = f[:-3]
-        m = consensusSize(os.path.join(consensus_dir, f))
+    f = open(consensus_fa, "r")
+    g = None
+    i = 0
+    line = f.readline()
+    while line != "":
+        if line[0] == ">":
+            if g != None:
+                g.close()
+            g = open(os.path.join(dir_names[i % 5], line[1:].split()[0] + ".fa"), "a")
+            i += 1
+        g.write(line)
+        line = f.readline()
 
-        print("Generating genomic alignments for " + name)
-        generateAlignments(os.path.join(consensus_dir, f),
-            "../data/hg38bins/dfamseq_bins", "../results/genomic_hits/")
-        print("Generating benchmark alignments for " + name)
-        generateAlignments(os.path.join(consensus_dir, f),
-            "../data/hg38bins/benchmark_bins", "../results/benchmark_hits/")
-
-        print("Calculating score thresholds for " + name)
-        scoreThresholds(os.path.join("../results/genomic_hits/", name),
-                        os.path.join("../results/benchmark_hits/", name),
-                        query_size=m, subject_size=n)
-    # For now, we will assume all consensus sequences passed in are from the human genomes.
-    # If we are able to do several genomes as well, we must add the following steps:
-        # Check if the genome already has binned batches produced for it, same for benchmark
-        # if not yet produced, run bin_genome on both the genome and the benchmark
-    # Generate alignments for each consensus sequence against the given genome and benchmark
-    # Finally, for each set of benchmark/genomic alignments, calculate the score threshold and output
+    f.close()
+    g.close()
 
 if __name__ == '__main__':
     main()

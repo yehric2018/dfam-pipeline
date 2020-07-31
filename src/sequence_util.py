@@ -11,8 +11,9 @@ AUTHOR(S):
 #
 # Module imports
 #
+import argparse
 
-DIV_VALUES = [14, 18, 20, 25, 30]
+DIV_VALUES = [14, 18, 20, 25]
 
 def nearestDivergence(div):
     """
@@ -88,5 +89,12 @@ def genomeSize(fa_file):
     return size
 
 if __name__ == '__main__':
-    print(genomeSize("../data/genomes/dfamseq.mask"))
-    #consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000001.fa")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("fa_file",
+            help="path to the fa_file containing consensus " +
+                "sequence or genome sequence")
+    parser.add_argument("-size", action="store_true",
+            help="find number of nucleotides in given sequence.")
+    args = parser.parse_args()
+
+    print(genomeSize(args.fa_file))

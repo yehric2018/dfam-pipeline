@@ -13,6 +13,7 @@ AUTHOR(S):
 #
 # Module imports
 #
+import argparse
 import re
 import math
 import os
@@ -181,7 +182,7 @@ def theoreticalFDRCalculation(genomic_hits, benchmark_hits, matrix):
     raw = (math.log(in_log) - math.log(target)) / GUMBEL[matrix]['lambda']
     return raw
 
-def generateScoreThreshold(genome_file, benchmark_file):
+def generateScoreThreshold(genome_file, benchmark_file, thresholds_table):
     """
     generateScoreThreshold(genome_file, benchmark_file) -
     Take in the file names of two alignment files produced from
@@ -212,7 +213,7 @@ def generateScoreThreshold(genome_file, benchmark_file):
     line = (consensus + "\t" + matrix + "\t" + str(empirical) + "\t" +
             str(theoretical) + "\t" + str((max(empirical, theoretical))))
     print(line)
-    THRESHOLDS_TABLE.write(line + "\n")
+    thresholds_table.write(line + "\n")
 
 def scoreThresholds(genome_dir, benchmark_dir,
         query_size=TEMP_CONSENSUS_SIZE, subject_size=TEMP_GENOME_SIZE):
@@ -240,17 +241,33 @@ def scoreThresholds(genome_dir, benchmark_dir,
         query_size: number of bps in consensus sequence.
         subject_size: number of bps in subject sequence/genome.
     """
-    THRESHOLDS_TABLE = open("../results/thresholds.txt", "a")
+    thresholds_table = open("../results/thresholds.txt", "a")
     genome_list = os.listdir(genome_dir)
     benchmark_list = os.listdir(benchmark_dir)
     m = query_size
     n = subject_size
     for f in genome_list:
         generateScoreThreshold(os.path.join(genome_dir, f),
-            os.path.join(benchmark_dir, f))
-    THRESHOLDS_TABLE.close()
+            os.path.join(benchmark_dir, f), thresholds_table)
+    thresholds_table.close()
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("genomic_hits",
+            help="path to the genomic alignments for consensus " +
+                "sequence of interest.")
+    parser.add_argument("benchmark_hits",
+            help="path to the benchmark alignments for consensus " +
+                "sequence of interest.")
+    parser.add_argument("--m",type=int, default=TEMP_CONSENSUS_SIZE,
+            help="size of given consensus sequence (query)")
+    parser.add_argument("--n",type=int, default=TEMP_GENOME_SIZE,
+            help="size of genome searched against (subject)")
+    args = parser.parse_args()
+
+    scoreThresholds(args.genomic_hits, args.benchmark_hits, args.m, args.n)
+
+    """
     scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000001/",
             "../results/alignments/test_alignments/benchmark/DF0000001/")
     scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000002/",
@@ -262,6 +279,7 @@ if __name__ == '__main__':
     scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000244/",
             "../results/alignments/test_alignments/benchmark/DF0000244/",
             query_size=consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000244.fa"))
+    """
     # generateScoreThreshold("../results/alignments/dfamseq/DF0000001_25p35g.sc",
     #                         "../results/alignments/benchmark/DF0000001_25p35g.sc")
 

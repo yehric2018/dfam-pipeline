@@ -1,4 +1,7 @@
 - Improve documentations on current Python scripts
-- Start building automated workflow infrastructure
-- generate_alignments.py needs to separate alignments into directories based on consensus sequence
-- Might have to rerun DF00..01 against bin 35
+- Add main to scoreThresholds.py
+- Write script using screen to run pipeline in 5 parallel processes
+- Run the big file of consensus sequences
+- Add score threshold to charts
+- Change chart to scatterplot
+- Allow selection of different consensus sequences
