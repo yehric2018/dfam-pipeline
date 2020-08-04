@@ -25,7 +25,7 @@ def main():
 
     consensus_fa = args.consensus
 
-    dir_names = [consensus_fa + "_1", consensus_fa + "_2", consensus_fa + "_3",
+    dir_names = [consensus_fa + "_", consensus_fa + "_2", consensus_fa + "_3",
                 consensus_fa + "_4", consensus_fa + "_5"]
     for dir_name in dir_names:
         if not os.path.exists(dir_name):
@@ -43,7 +43,7 @@ def main():
         if line[0] == ">":
             if g != None:
                 g.close()
-            g = open(os.path.join(dir_names[i % 5], line[1:].split()[0] + ".fa"), "a")
+            g = open(os.path.join(consensus_fa + "_", line[1:].split()[0] + ".fa"), "a")
             i += 1
         g.write(line)
         line = f.readline()

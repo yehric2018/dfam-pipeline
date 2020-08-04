@@ -1,6 +1,8 @@
 google.charts.load('current', {'packages':['corechart']});
 //google.charts.setOnLoadCallback(drawChart);
 
+let consensus = "DF0000005"; // DF0000005
+let matrix = "14p35g";
 let genomic_hits = [];
 let benchmark_hits = [];
 let tp_gain = [];
@@ -27,7 +29,7 @@ $(document).ready(function() {
     });
 
     var tp_load = $.ajax({
-        url: '../genomic_hits/DF0000002/DF0000002_14p35g.sc',
+        url: `../genomic_hits/${consensus}/${consensus}_${matrix}.sc`,
         dataType: 'text',
         success: function(resp) {
             genomic_hits = countHits(resp);
@@ -38,16 +40,21 @@ $(document).ready(function() {
         }
     });
 
-    $.when(tp_load).then(function() {
-        var fp_load = $.ajax({
-            url: '../benchmark_hits/DF0000002/DF0000002_14p35g.sc',
-            dataType: 'text',
-            success: function(resp) {
-                benchmark_hits = countHits(resp);
-                console.log(benchmark_hits);
-                drawChart();
-            },
-        });
+    var fp_load = $.ajax({
+        url: `../benchmark_hits/${consensus}/${consensus}_${matrix}.sc`,
+        dataType: 'text',
+        success: function(resp) {
+            benchmark_hits = countHits(resp);
+            console.log(benchmark_hits);
+        },
+        error: function(req, status, err) {
+            console.log("something went wrong", status, err);
+        }
+    });
+
+    $.when(thresh_load, tp_load, fp_load).then(function() {
+        console.log("drawing chart");
+        drawChart();
     })
 });
 
@@ -87,7 +94,7 @@ function drawChart() {
         ['Complexity Adjusted Score', 'Cum_TP', 'Cum_FP', 'Cum_TP_Gain']].concat(hits));
 
     var options = {
-        title: 'AluY Genomic(TP) vs Benchmark(FP) Cumulative scores for 25p35g in hg38 (35gc batches)',
+        title: `${consensus} Genomic(TP) vs Benchmark(FP) Cumulative scores for ${matrix} in hg38`,
         pointSize: 4,
         hAxis: {title: 'Complexity Adjusted Score',
             minValue: 60, maxValue: 200, direction: -1,
@@ -98,8 +105,8 @@ function drawChart() {
     var chart = new google.visualization.ScatterChart(document.getElementById('chart_div'));
 
     chart.draw(data, options);
-    drawVAxisLine(chart, 143.05);
-    console.log("HELLO?????");
+    drawVAxisLine(chart, thresholds[consensus][matrix]);
+    $('.overlay').html(`<div>Score threshold = ${thresholds[consensus][matrix]}</div>`);
 }
 
 function drawVAxisLine(chart, value) {
