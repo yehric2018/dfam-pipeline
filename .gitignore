@@ -4,3 +4,4 @@ data/hg38bins/
 data/test_data/
 results/
 src/bins/
+bin/jobs/
