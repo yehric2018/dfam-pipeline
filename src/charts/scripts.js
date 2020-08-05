@@ -1,14 +1,16 @@
 google.charts.load('current', {'packages':['corechart']});
 //google.charts.setOnLoadCallback(drawChart);
 
-let consensus = "DF0000005"; // DF0000005
-let matrix = "14p35g";
+let matrix = "25p35g";
 let genomic_hits = [];
 let benchmark_hits = [];
 let tp_gain = [];
 let thresholds = {};
 
 $(document).ready(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const consensus = urlParams.get('consensus');
+
     var thresh_load = $.ajax({
         url: '../thresholds.txt',
         dataType: 'text',
@@ -52,10 +54,14 @@ $(document).ready(function() {
         }
     });
 
+    $.when(thresh_load).then(function() {
+        console.log("threshold is loaded");
+    });
+
     $.when(thresh_load, tp_load, fp_load).then(function() {
         console.log("drawing chart");
         drawChart();
-    })
+    });
 });
 
 function countHits(resp) {
@@ -78,7 +84,7 @@ function countHits(resp) {
     return hits.map((count, index) => [index, count]).slice(60, 201);
 }
 
-function drawChart() {
+function drawChart(consensus, matrix, genomic_hits, benchmark_hits) {
     var prehits = genomic_hits.map((elt, index) => {
         return [elt[0], elt[1],
                     benchmark_hits[index][1], elt[1] - benchmark_hits[index][1]];
