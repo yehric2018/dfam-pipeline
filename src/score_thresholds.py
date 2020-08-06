@@ -242,7 +242,7 @@ def scoreThresholds(genome_dir, benchmark_dir,
         subject_size: number of bps in subject sequence/genome.
     """
     #thresholds_table = open("../results/thresholds.txt", "a")
-    consensus = genome_dir.split("/")[-2].split("_")[0]
+    consensus = genome_dir[:-1].split("/")[-1].split("_")[0]
     thresholds_table = open("../results/thresholds/" + consensus +
                     ".thresh", "w")
     print("../results/thresholds/" + consensus + ".thresh")

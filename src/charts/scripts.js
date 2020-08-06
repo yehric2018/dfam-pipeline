@@ -1,16 +1,9 @@
 google.charts.load('current', {'packages':['corechart']});
 //google.charts.setOnLoadCallback(drawChart);
 
-let matrix = "25p35g";
-let genomic_hits = [];
-let benchmark_hits = [];
-let tp_gain = [];
 let thresholds = {};
 
 $(document).ready(function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const consensus = urlParams.get('consensus');
-
     var thresh_load = $.ajax({
         url: '../thresholds.txt',
         dataType: 'text',
@@ -30,11 +23,30 @@ $(document).ready(function() {
         }
     });
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const consensus = urlParams.get('consensus');
+
+    $.when(thresh_load).then(function() {
+        var matrices = Object.keys(thresholds[consensus]).sort();
+        for (var i = 0; i < matrices.length; i++) {
+            loadHits(consensus, matrices[i]);
+        }
+    });
+});
+
+function loadHits(consensus, matrix) {
+    $('.charts').append(`<div class='chartWithOverlay' id='${matrix}'></div>`);
+    $(`#${matrix}.chartWithOverlay`).append(`<div id='chart_${matrix}' class='chart'></div>`);
+    $(`#${matrix}.chartWithOverlay`).append(`<div id='overlay_${matrix}' class='overlay'></div>`);
+
+    var genomic_hits = []
+    var benchmark_hits = []
+
     var tp_load = $.ajax({
         url: `../genomic_hits/${consensus}/${consensus}_${matrix}.sc`,
         dataType: 'text',
         success: function(resp) {
-            genomic_hits = countHits(resp);
+            genomic_hits = countHits(resp, thresholds[consensus][matrix]);
             console.log(genomic_hits);
         },
         error: function(req, status, err) {
@@ -46,7 +58,7 @@ $(document).ready(function() {
         url: `../benchmark_hits/${consensus}/${consensus}_${matrix}.sc`,
         dataType: 'text',
         success: function(resp) {
-            benchmark_hits = countHits(resp);
+            benchmark_hits = countHits(resp, thresholds[consensus][matrix]);
             console.log(benchmark_hits);
         },
         error: function(req, status, err) {
@@ -54,17 +66,13 @@ $(document).ready(function() {
         }
     });
 
-    $.when(thresh_load).then(function() {
-        console.log("threshold is loaded");
-    });
-
-    $.when(thresh_load, tp_load, fp_load).then(function() {
+    $.when(tp_load, fp_load).then(function() {
         console.log("drawing chart");
-        drawChart();
+        drawChart(consensus, matrix, genomic_hits, benchmark_hits);
     });
-});
+}
 
-function countHits(resp) {
+function countHits(resp, threshold) {
     const lines = resp.split("\n");
     const hits = new Array(10001).fill(0);
     var max = 0
@@ -81,7 +89,9 @@ function countHits(resp) {
     for (var i = hits.length - 2; i >= 0; i--) {
         hits[i] += hits[i + 1];
     }
-    return hits.map((count, index) => [index, count]).slice(60, 201);
+    var xMax = Math.ceil(threshold + 60);
+    var xMin = Math.ceil(threshold - 80);
+    return hits.map((count, index) => [index, count]).slice(xMin, xMax);
 }
 
 function drawChart(consensus, matrix, genomic_hits, benchmark_hits) {
@@ -89,6 +99,9 @@ function drawChart(consensus, matrix, genomic_hits, benchmark_hits) {
         return [elt[0], elt[1],
                     benchmark_hits[index][1], elt[1] - benchmark_hits[index][1]];
     })
+    var xMin = Math.ceil(thresholds[consensus][matrix] - 80);
+    var xMax = Math.ceil(thresholds[consensus][matrix] + 60);
+
     var hits = [];
     hits.push(prehits[0])
     for (var i = 1; i < prehits.length; i++) {
@@ -103,27 +116,27 @@ function drawChart(consensus, matrix, genomic_hits, benchmark_hits) {
         title: `${consensus} Genomic(TP) vs Benchmark(FP) Cumulative scores for ${matrix} in hg38`,
         pointSize: 4,
         hAxis: {title: 'Complexity Adjusted Score',
-            minValue: 60, maxValue: 200, direction: -1,
-            viewWindow: {min: 60, max: 200}},
+            minValue: xMin, maxValue: xMax, direction: -1,
+            viewWindow: {min: xMin, max: xMax}},
         vAxis: {title: 'Alignment Counts'},
     };
 
-    var chart = new google.visualization.ScatterChart(document.getElementById('chart_div'));
+    var chart = new google.visualization.ScatterChart(document.getElementById(`chart_${matrix}`));
 
     chart.draw(data, options);
-    drawVAxisLine(chart, thresholds[consensus][matrix]);
-    $('.overlay').html(`<div>Score threshold = ${thresholds[consensus][matrix]}</div>`);
+    drawVAxisLine(chart, thresholds[consensus][matrix], matrix);
+    $(`#overlay_${matrix}`).html(`<div>Score threshold = ${thresholds[consensus][matrix]}</div>`);
 }
 
-function drawVAxisLine(chart, value) {
+function drawVAxisLine(chart, value, matrix) {
     var layout = chart.getChartLayoutInterface();
     var chartArea = layout.getChartAreaBoundingBox();
 
     var svg = chart.getContainer().getElementsByTagName('svg')[0];
     var xLoc = layout.getXLocation(value);
     svg.appendChild(createLine(xLoc, chartArea.top + chartArea.height, xLoc, chartArea.top, 'black', 4));
-    document.querySelector('.overlay').style.top = chartArea.top + chartArea.height / 2;
-    document.querySelector('.overlay').style.left = xLoc + 5;
+    document.querySelector(`#overlay_${matrix}`).style.top = chartArea.top + chartArea.height / 2;
+    document.querySelector(`#overlay_${matrix}`).style.left = xLoc + 5;
 }
 
 function createLine(x1, y1, x2, y2, color, w) {

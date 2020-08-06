@@ -25,5 +25,5 @@ python3 ../src/run_job.py {fpath}'''
 
 f = open("../bin/batch_run.sh", "w")
 for seq in [s[:-3] for s in seqs]:
-    f.write("batch ../bin/jobs/{name}.sh\n".format(name = seq))
+    f.write("sbatch ../bin/jobs/{name}.sh\n".format(name = seq))
 f.close()
