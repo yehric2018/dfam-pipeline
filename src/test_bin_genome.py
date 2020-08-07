@@ -3,7 +3,9 @@
 """
 test_bin_genome.py
 
-A quick test suite for bin_genome.py.
+A quick test suite for bin_genome.py. Can simply be run as:
+
+$ python test_bin_genome.py
 
 AUTHOR(S):
     Eric Yeh

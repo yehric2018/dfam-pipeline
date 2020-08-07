@@ -51,7 +51,7 @@ function loadCharts() {
         });
 
         $.when(cache_load).then(function() {
-            for (var i = 1; i < matrices.length; i++) {
+            for (var i = 0; i < matrices.length; i++) {
                 cacheToChart(consensus, matrices[i], hits);
             }
         });

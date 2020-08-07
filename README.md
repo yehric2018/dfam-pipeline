@@ -17,6 +17,11 @@ Dfam is a database developed at the Hood-Price lab that stores TE family entries
 ### False Discovery Rate (FDR)
 The proportion of sequence alignments (annotations) that are expected to be false positives (Type I errors). To account for mutations over time, we identify TE copies with a sequence similarity search algorithm, which aligns the consensus sequence of a TE family with a sequence of DNA and computes a similarity score. In the past, we have used a small set of conservative fixed score thresholds to maintain a low overall FDR, but applying the same set of thresholds to large groups of TE families risks being overly conservative with some families and misses true matches. To maintain high sensitivity in our annotation, we should find a minimal score threshold(s) that can find more matches while keeping the FDR reasonably low, in our case below 0.2%. To estimate the alignment threshold for a fixed FDR, we align a family consensus sequence against a benchmark genome (a realistic sequence devoid of TE content, generated using GARLIC), and a reference genome. The threshold would then be the lowest reference genome alignment score which satisfies the target FDR.
 
+## Usage
+- **Creating binned batches based on GC background** - Run the genome sequence and benchmark genome sequence through bin\_genome.py to create GC bins containing batches of 60kb.
+- **Create directory of consensus sequences** - Run dfam\_pipeline.py, taking in as an argument an fa file that contains the names of consensus sequences and their divergences, to create a directory with an individual fa file for each consensus sequence.
+- **Create jobs for TMU cluster** - Pass the directory created from dfam\_pipeline.py into job\_headers.py to create header scripts for each consensus sequence, which will be placed in the /bin/jobs directory. Develops a Bash script in the /bin directory that can be run on TMU to submit all jobs to the queue.
+
 ## Scripts
 **/src/dfam\_pipeline.py:** Split fa file of consensus sequences into 5 directories, placing each consensus sequence in its own individual fa file.<br />
 **/src/jobs\_batch.py:** Runs the pipeline for a directory of consensus sequences. Open 5 new screen sessions and run this script for each of the directories produced by dfam\_pipeline.py so thresholds can be generated concurrently.<br />
