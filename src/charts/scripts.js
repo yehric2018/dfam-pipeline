@@ -1,5 +1,4 @@
 google.charts.load('current', {'packages':['corechart']});
-//google.charts.setOnLoadCallback(drawChart);
 
 let thresholds = {};
 
@@ -26,11 +25,62 @@ $(document).ready(function() {
     const urlParams = new URLSearchParams(window.location.search);
     const consensus = urlParams.get('consensus');
 
+
     $.when(thresh_load).then(function() {
         var matrices = Object.keys(thresholds[consensus]).sort();
-        for (var i = 0; i < matrices.length; i++) {
-            loadHits(consensus, matrices[i]);
-        }
+        $.ajax({
+            url: `../cache/${consensus}.json`,
+            dataType: 'text',
+            success: function(resp) {
+                var hits = JSON.parse(resp);
+                for (var i = 1; i < matrices.length; i++) {
+                    $('.charts').append(`<div class='chartWithOverlay' id='${matrix}'></div>`);
+                    $(`#${matrix}.chartWithOverlay`).append(`<div id='chart_${matrix}' class='chart'></div>`);
+                    $(`#${matrix}.chartWithOverlay`).append(`<div id='overlay_${matrix}' class='overlay'></div>`);
+
+                    var matrix = matrices[i];
+                    var threshold = thresholds[consensus][matrix]
+
+                    var genomic_hits = new Array(10001).fill(0);
+                    for (var j = 0; j < hits.genomic[matrix].length; j++) {
+                        var hit = hits.genomic[matrix][j];
+                        if (hit <= 10000 && hit >= 0) {
+                            genomic_hits[hit]++;
+                        }
+                    }
+                    for (var j = genomic_hits.length - 2; j >= 0; j--) {
+                        genomic_hits[j] += genomic_hits[j + 1];
+                    }
+
+                    var benchmark_hits = new Array(10001).fill(0);
+                    for (var j = 0; j < hits.benchmark[matrix].length; j++) {
+                        var hit = hits.benchmark[matrix][j];
+                        if (hit <= 10000 && hit >= 0) {
+                            benchmark_hits[hit]++;
+                        }
+                    }
+                    for (var j = benchmark_hits.length - 2; j >= 0; j--) {
+                        benchmark_hits[j] += benchmark_hits[j + 1];
+                    }
+
+                    var xMax = Math.ceil(threshold + 60);
+                    var xMin = Math.ceil(threshold - 80);
+
+                    genomic_hits = genomic_hits.map((count, index) => [index, count]).slice(xMin, xMax);
+                    benchmark_hits = benchmark_hits.map((count, index) => [index, count]).slice(xMin, xMax);
+
+                    console.log(genomic_hits);
+                    console.log(benchmark_hits);
+                    drawChart(consensus, matrix, genomic_hits, benchmark_hits);
+                }
+            },
+            error: function(req, status, err) {
+                console.log("couldn't load cache");
+                for (var i = 0; i < matrices.length; i++) {
+                    loadHits(consensus, matrices[i]);
+                }
+            }
+        });
     });
 });
 
@@ -109,6 +159,7 @@ function drawChart(consensus, matrix, genomic_hits, benchmark_hits) {
             hits.push(prehits[i]);
         }
     }
+    console.log([['Complexity Adjusted Score', 'Cum_TP', 'Cum_FP', 'Cum_TP_Gain']].concat(hits));
     var data = google.visualization.arrayToDataTable([
         ['Complexity Adjusted Score', 'Cum_TP', 'Cum_FP', 'Cum_TP_Gain']].concat(hits));
 

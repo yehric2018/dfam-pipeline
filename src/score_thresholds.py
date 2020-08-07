@@ -97,7 +97,6 @@ def readScoresFromFile(sc_file):
     Returns: list of Hit objects produced from sc_file sorted
         in decreasing order by score.
     """
-    matrix = sc_file[-9:-3]
     f = open(sc_file, "r")
     scoreRegex = re.compile(r"^\s*(\d+)\s+\d+\.\d+\s+\d+\.\d+")
     hits = []
