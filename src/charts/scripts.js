@@ -1,4 +1,5 @@
 let thresholds = {};
+let cnames = {};
 
 $(document).ready(function() {
     google.charts.load('current', {
@@ -11,7 +12,7 @@ $(document).ready(function() {
 
 function loadCharts() {
     var thresh_load = $.ajax({
-        url: '../thresholds.txt',
+        url: '../results.thresh',
         dataType: 'text',
         success: function(resp) {
             var thresh_table = resp.split('\n');
@@ -29,10 +30,26 @@ function loadCharts() {
         }
     });
 
+    var cname_load = $.ajax({
+        url: '../cnames.txt',
+        dataType: 'text',
+        success: function(resp) {
+            var rows = resp.split('\n');
+            for (var i = 0; i < rows.length; i++) {
+                var line = rows[i].split(" ");
+                cnames[line[0]] = line[2];
+            }
+            console.log(cnames);
+        },
+        error: function(req, status, err) {
+            console.log("something went wrong", status, err);
+        }
+    });
+
     const urlParams = new URLSearchParams(window.location.search);
     const consensus = urlParams.get('consensus');
 
-    $.when(thresh_load).then(function() {
+    $.when(thresh_load, cname_load).then(function() {
         var matrices = Object.keys(thresholds[consensus]).sort();
         var hits = {};
         var cache_load = $.ajax({
@@ -178,7 +195,7 @@ function drawChart(consensus, matrix, genomic_hits, benchmark_hits) {
         ['Complexity Adjusted Score', 'Cum_TP', 'Cum_FP', 'Cum_TP_Gain']].concat(hits));
 
     var options = {
-        title: `${consensus} Genomic(TP) vs Benchmark(FP) Cumulative scores for ${matrix} in hg38`,
+        title: `${consensus} ${cnames[consensus]} Genomic(TP) vs Benchmark(FP) Cumulative scores for ${matrix} in hg38`,
         pointSize: 4,
         hAxis: {title: 'Complexity Adjusted Score',
             minValue: xMin, maxValue: xMax, direction: -1,

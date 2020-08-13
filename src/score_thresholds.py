@@ -240,7 +240,6 @@ def scoreThresholds(genome_dir, benchmark_dir,
         query_size: number of bps in consensus sequence.
         subject_size: number of bps in subject sequence/genome.
     """
-    #thresholds_table = open("../results/thresholds.txt", "a")
     consensus = genome_dir[:-1].split("/")[-1].split("_")[0]
     thresholds_table = open("../results/thresholds/" + consensus +
                     ".thresh", "w")
@@ -269,20 +268,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     scoreThresholds(args.genomic_hits, args.benchmark_hits, args.m, args.n)
-
-    """
-    scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000001/",
-            "../results/alignments/test_alignments/benchmark/DF0000001/")
-    scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000002/",
-            "../results/alignments/test_alignments//benchmark/DF0000002/",
-            query_size=consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000002.fa"))
-    scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000004/",
-            "../results/alignments/test_alignments/benchmark/DF0000004/",
-            query_size=consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000004.fa"))
-    scoreThresholds("../results/alignments/test_alignments/dfamseq/DF0000244/",
-            "../results/alignments/test_alignments/benchmark/DF0000244/",
-            query_size=consensusSize("../data/consensus/ex_hg38_cons.fa_/DF0000244.fa"))
-    """
-    # generateScoreThreshold("../results/alignments/dfamseq/DF0000001_25p35g.sc",
-    #                         "../results/alignments/benchmark/DF0000001_25p35g.sc")
-
