@@ -1,42 +1,57 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
-"""
-alu_union.py - Union all alu hits together for a given threshold and
-find the TP/FP ratio.
-
-AUTHOR(S):
-    Eric Yeh
-"""
-
-#
-# Module imports
-#
-import argparse
-import os
 import re
+import os
 
-def convertToBed(fname, bed, threshold):
+from sequence_util import nearestDivergence
+
+def getAlus():
+	f = open("test_list.txt", "r")
+	alus = []
+	for line in f.readlines():
+		alu = line.split()
+		consensus = alu[0]
+		div = nearestDivergence(float(alu[1].split("=")[1]))
+		alus.append((consensus, str(div)))
+	return alus
+
+def getHits(fname):
+	hits = {}
+
 	f = open(fname, "r")
-	scoreRegex = re.compile(r"^\s*(\d+)(\s+\d+\.\d+){3}\s+(\d+):(\d+)\-\d+\s+(\d+)\s+(\d+)")
+	regex = re.compile(r"^\s*(\d+)(\s+\d+\.\d+){3}\s+(\d+):(\d+)\-\d+\s+(\d+)\s+(\d+)")
 
 	line = f.readline()
 	while line != "":
-		mo = scoreRegex.search(line)
-		if mo and int(mo.group(1)) > threshold:
+		mo = regex.search(line)
+		if mo:
+			chrom = mo.group(3)
 			start = int(mo.group(4)) + int(mo.group(5))
 			end = int(mo.group(4)) + int(mo.group(6))
-			bed.write(mo.group(3) + "\t" + str(start) + "\t" + str(end) + "\n")
+			score = int(mo.group(1))
+			if chrom not in hits:
+				hits[chrom] = []
+			hits[chrom].append(((start, end), score))
 		line = f.readline()
+	f.close()
+
+	return hits
+
+def getAllHits(alus, path):
+	hits = {}
+	for alu in alus:
+		fname = alu[0] + "/" + alu[0] + "_" + alu[1] + "p43g.sc"
+		new_hits = getHits(os.path.join(path, fname))
+		for key in new_hits:
+			if key not in hits:
+				hits[key] = []
+			hits[key] = hits[key] + new_hits[key]
+	return hits
 
 def main():
-	parser = argparse.ArgumentParser()
-	args = parser.parse_args()
-
-	threshold = 120.05
-	bed = open("14p35g.bed", "w")
-	
-	convertToBed("../../results/genomic_hits/DF0000002/DF0000002_14p35g.sc", bed, threshold)
-	convertToBed("../../results/genomic_hits/DF0000003/DF0000003_14p35g.sc", bed, threshold)
+	alus = getAlus()
+	genomic_hits = getAllHits(alus, "../../results/genomic_hits/")
+	print(genomic_hits)
+	benchmark_hits = getAllHits(alus, "../../results/benchmark_hits/")
+	print(benchmark_hits)
 
 if __name__ == '__main__':
     main()
