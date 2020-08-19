@@ -5,7 +5,7 @@ import subprocess
 from sequence_util import nearestDivergence
 
 def getAlus():
-	f = open("test_list.txt", "r")
+	f = open("alu_list.txt", "r")
 	alus = []
 	for line in f.readlines():
 		alu = line.split()
@@ -56,13 +56,12 @@ def sort2(elem):
 def writeToBed(chrom, hits_list, threshold):
 	# Filter hits
 	hits = list(filter(lambda x : x[1] > threshold, hits_list))
-	print(len(hits))
 
 	# Takes in a list of hits on one chromosome
 	# Sorts the list in this function
 	hits.sort(key=sort1)
 	hits.sort(key=sort2)
-	bed = open(chrom + str(threshold) + ".bed", "w") # temp.bed
+	bed = open("temp.bed", "w") # temp.bed
 	for hit in hits:
 		bed.write(chrom + "\t" + str(hit[0][0]) + "\t" + str(hit[0][1]) + "\n")
 	bed.close()
@@ -71,15 +70,12 @@ def countMerged(hits, threshold):
 	# hits is a dict, chromosomes are keys and list of hits are vals
 	count = 0
 	for chrom in hits:
-		print("running on chromosome " + chrom + ", threshold " + str(threshold))
-		print(len(hits[chrom]))
 		writeToBed(chrom, hits[chrom], threshold)
 		ps = subprocess.Popen((["bedtools", "merge", "-i", "temp.bed"]), stdout=subprocess.PIPE)
 		output = subprocess.check_output(("wc", "-l"), stdin=ps.stdout)
 		ps.wait()
 
 		count += int(output.strip())
-		print(int(output.strip()))
 	return count
 
 def getFDR(genomic_hits, benchmark_hits, threshold):

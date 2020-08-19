@@ -1,1 +1,2 @@
 DF0000002 avg_kimura=4.26 [aluy]
+DF0000003 avg_kimura=7.96 [alusc]
