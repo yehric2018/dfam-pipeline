@@ -23,3 +23,10 @@ Note that this pipeline is currently only compatible with human genome consensus
 - consensus: Path to the consensus sequence's fa file. This fa file should only contain a single sequence.
 
 The alignments will be outputted to /results/genomic\_hits and /results/benchmark\_hits. The score thresholds will be outputted to /results/thresholds.
+
+## Running on cluster
+Producing alignments and thresholds will take a while, especially when running RMBlast. To speed up the process, jobs should be run in parallel on a cluster environment. Run the following command to create a set of jobs in the /bin directory:
+
+`$ python3 job_headers.py`
+
+You can change the filepath on line 3 to refer to a list of consensus sequences to run. A bash script called /bin/batch\_run.sh will be produced to start all the jobs on TMU.

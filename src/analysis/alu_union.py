@@ -4,6 +4,8 @@ import subprocess
 
 from sequence_util import nearestDivergence
 
+gc = "p37g.sc"
+
 def getAlus():
 	f = open("alu_list.txt", "r")
 	alus = []
@@ -25,7 +27,7 @@ def getHits(fname):
 		mo = regex.search(line)
 		if mo:
 			chrom = mo.group(3)
-			start = int(mo.group(4)) + int(mo.group(5))
+			start = int(mo.group(4)) + int(mo.group(5)) - 1
 			end = int(mo.group(4)) + int(mo.group(6))
 			score = int(mo.group(1))
 			if chrom not in hits:
@@ -39,7 +41,7 @@ def getHits(fname):
 def getAllHits(alus, path):
 	hits = {}
 	for alu in alus:
-		fname = alu[0] + "/" + alu[0] + "_" + alu[1] + "p43g.sc"
+		fname = alu[0] + "/" + alu[0] + "_" + alu[1] + gc
 		new_hits = getHits(os.path.join(path, fname))
 		for key in new_hits:
 			if key not in hits:
@@ -82,7 +84,7 @@ def getFDR(genomic_hits, benchmark_hits, threshold):
 	gcount = countMerged(genomic_hits, threshold)
 	bcount = countMerged(benchmark_hits, threshold)
 	fdr = 1.0 * bcount / gcount
-	print(str(threshold) + "\t" + str(gcount) + "\t" + str(bcount) + "\t" + str(fdr))
+	print(gc + "\t" + str(threshold) + "\t" + str(gcount) + "\t" + str(bcount) + "\t" + str(fdr))
 	return fdr
 
 def main():
@@ -90,7 +92,7 @@ def main():
 	genomic_hits = getAllHits(alus, "../../results/genomic_hits/")
 	benchmark_hits = getAllHits(alus, "../../results/benchmark_hits/")
 
-	thresholds = [128.05, 129.05, 130.05, 131.05, 134.05, 123.05, 125.05, 126.05, 127.05]
+	thresholds =[128.05, 129.05, 130.05, 131.05, 132.05, 133.05, 134.05, 135.05, 136.05, 137.05, 138.05, 139.05, 140.05, 141.05, 142.05, 143.05, 144.05, 145.05, 146.05, 147.05, 163.05, 166.05, 115.05, 117.05, 118.05, 119.05, 120.05, 121.05, 122.05, 123.05, 124.05, 125.05, 126.05, 127.05]
 	for thresh in thresholds:
 		fdr = getFDR(genomic_hits, benchmark_hits, thresh)
 
